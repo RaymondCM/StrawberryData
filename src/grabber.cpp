@@ -7,40 +7,9 @@
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp>
 
+void PrintDeviceInfo(rs2::device &dev);
+void WriteMetaData(const std::string &file_name, rs2::video_frame &frame);
 
-void PrintDeviceInfo(rs2::device &dev) {
-    auto print_info = [&dev](const int info) {
-        std::string output = "Not available";
-        try {
-            output = std::string(dev.get_info((rs2_camera_info) info));
-        } catch (const rs2::error&) {}
-        return std::string(rs2_camera_info_to_string((rs2_camera_info) info)) + ": " + output;
-    };
-
-    std::cout << "Device Information: " << std::endl;
-    for (int i = 0; i < RS2_CAMERA_INFO_COUNT; ++i)
-        std::cout << "\t" << print_info(i) << std::endl;
-}
-
-void WriteMetaData(const std::string &file_name, rs2::video_frame &frame) {
-    std::ofstream csv;
-    csv.open(file_name);
-
-    //std::cout << "Writing metadata to " << file_name << std::endl;
-    csv << "Stream," << rs2_stream_to_string(frame.get_profile().stream_type()) << "\nMetadata Attribute,Value\n";
-
-    // Record all the available metadata attributes
-    for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++)
-    {
-        if (frame.supports_frame_metadata((rs2_frame_metadata_value)i))
-        {
-            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << "," <<
-                frame.get_frame_metadata((rs2_frame_metadata_value)i) << "\n";
-        }
-    }
-
-    csv.close();
-}
 int main(int argc, char * argv[]) try
 {
     // Get the first real sense device
@@ -182,4 +151,38 @@ catch (const std::exception & e)
 {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
+}
+
+void PrintDeviceInfo(rs2::device &dev) {
+    auto print_info = [&dev](const int info) {
+        std::string output = "Not available";
+        try {
+            output = std::string(dev.get_info((rs2_camera_info) info));
+        } catch (const rs2::error&) {}
+        return std::string(rs2_camera_info_to_string((rs2_camera_info) info)) + ": " + output;
+    };
+
+    std::cout << "Device Information: " << std::endl;
+    for (int i = 0; i < RS2_CAMERA_INFO_COUNT; ++i)
+        std::cout << "\t" << print_info(i) << std::endl;
+}
+
+void WriteMetaData(const std::string &file_name, rs2::video_frame &frame) {
+    std::ofstream csv;
+    csv.open(file_name);
+
+    //std::cout << "Writing metadata to " << file_name << std::endl;
+    csv << "Stream," << rs2_stream_to_string(frame.get_profile().stream_type()) << "\nMetadata Attribute,Value\n";
+
+    // Record all the available metadata attributes
+    for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++)
+    {
+        if (frame.supports_frame_metadata((rs2_frame_metadata_value)i))
+        {
+            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << "," <<
+                frame.get_frame_metadata((rs2_frame_metadata_value)i) << "\n";
+        }
+    }
+
+    csv.close();
 }
