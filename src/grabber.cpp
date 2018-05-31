@@ -1,14 +1,12 @@
 #include <string>
-#include <chrono>
-#include <ctime>
-
-#include <boost/filesystem.hpp>
 
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp>
 
+#include <Strawberry.hpp>
+
 void PrintDeviceInfo(rs2::device &dev);
-void WriteMetaData(const std::string &file_name, rs2::video_frame &frame);
+void WriteVideoFrameMetaData(const std::string &file_name, rs2::video_frame &frame);
 
 int main(int argc, char * argv[]) try
 {
@@ -64,6 +62,8 @@ int main(int argc, char * argv[]) try
     for(int i = 0; i < 30; i++)
         rs2::frameset exposure_frames = pipe.wait_for_frames();
 
+    Strawberry::DataStructure data_structure(serial_number);
+
     char input = 's';
     while(input != 'q' && windows_are_open()) {
         // Wait for a coherent set of frames
@@ -107,35 +107,22 @@ int main(int argc, char * argv[]) try
 
         // If the input is a space then save all of the data
         if(input == ' ') {
-            // Create folder name data/YYYY_MM_DD/HH_MM_SS_MMMM/file
-            using namespace std::chrono;
-            high_resolution_clock::time_point p = high_resolution_clock::now();
-            milliseconds ms = duration_cast<milliseconds>(p.time_since_epoch());
-            std::time_t t = duration_cast<seconds>(ms).count();
-            long fractional_seconds = ms.count() % 1000;
-            std::stringstream folder;
-            folder << "data/" << serial_number << std::put_time(std::localtime(&t), "/%Y_%m_%d/%H_%M_%S_") <<
-                   std::setfill('0') << std::setw(3) << fractional_seconds << "/";
-            std::string folder_path = folder.str();
-            boost::filesystem::path dir(folder_path);
-
-            // Create directories if they do not exist
-            if(!boost::filesystem::is_directory(dir) || !boost::filesystem::exists(dir))
-                boost::filesystem::create_directories(dir);
+            //Update folder structure and create necessary folders
+            data_structure.UpdateFolderPaths();
 
             // Save the files to disk
-            std::cout << "Writing files " << folder_path << std::endl;
-            cv::imwrite(folder_path + "depth_16UC1.png", depth_mat);
-            cv::imwrite(folder_path + "colourised_depth_8UC1.png", c_depth_mat);
-            cv::imwrite(folder_path + "bgr_8UC3.png", colour_mat);
-            cv::imwrite(folder_path + "ir_left_8UC1.png", lir_mat);
-            cv::imwrite(folder_path + "ir_right_8UC1.png", rir_mat);
-            point_cloud.export_to_ply(folder_path + "point_cloud.ply", colour);
+            std::cout << "Writing files " << data_structure.folder_.string() << std::endl;
+            cv::imwrite(data_structure.FilePath(RsType::DEPTH), depth_mat);
+            cv::imwrite(data_structure.FilePath(RsType::COLOURED_DEPTH), c_depth_mat);
+            cv::imwrite(data_structure.FilePath(RsType::COLOUR), colour_mat);
+            cv::imwrite(data_structure.FilePath(RsType::IR_LEFT), lir_mat);
+            cv::imwrite(data_structure.FilePath(RsType::IR_RIGHT), rir_mat);
+            point_cloud.export_to_ply(data_structure.FilePath(RsType::POINT_CLOUD), colour);
 
             // Write meta data
-            WriteMetaData(folder_path + "bgr_8UC3_metadata.csv", colour);
-            WriteMetaData(folder_path + "depth_16UC1_metadata.csv", depth);
-            WriteMetaData(folder_path + "ir_8UC1_metadata.csv", lir);
+            WriteVideoFrameMetaData(data_structure.FilePath(RsType::DEPTH, true), depth);
+            WriteVideoFrameMetaData(data_structure.FilePath(RsType::COLOUR, true), colour);
+            WriteVideoFrameMetaData(data_structure.FilePath(RsType::IR, true), lir);
         }
     }
 
@@ -167,7 +154,7 @@ void PrintDeviceInfo(rs2::device &dev) {
         std::cout << "\t" << print_info(i) << std::endl;
 }
 
-void WriteMetaData(const std::string &file_name, rs2::video_frame &frame) {
+void WriteVideoFrameMetaData(const std::string &file_name, rs2::video_frame &frame) {
     std::ofstream csv;
     csv.open(file_name);
 
