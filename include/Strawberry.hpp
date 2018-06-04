@@ -34,4 +34,4 @@ namespace Strawberry {
     };
 };
 
-#endif STRAWBERRYDATA_STRAWBERRY_H
+#endif // STRAWBERRYDATA_STRAWBERRY_H
