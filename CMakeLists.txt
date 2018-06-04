@@ -14,6 +14,6 @@ file(GLOB HEADER_FILES "include/*.hpp")
 set(DEPENDANCIES ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${OpenCV_LIBS} realsense2)
 set(INCLUDE_DIRECTORIES include ${Boost_INCLUDE_DIRS})
 
-add_executable(grabber ${SRC_FILES} ${HEADER_FILES})
+add_executable(grabber ${SRC_FILES})
 target_include_directories(grabber PUBLIC ${INCLUDE_DIRECTORIES})
 target_link_libraries(grabber ${DEPENDANCIES})
