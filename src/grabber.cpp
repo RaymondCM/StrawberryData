@@ -28,16 +28,44 @@ int main(int argc, char * argv[]) try
     }
 
     bool all_threads_alive = true;
+    char input[255];
+
     do {
         std::cout << "Press enter to save data from all capture devices: ";
-        std::cin.get();
+        std::cin.getline(input, 255, '\n');
 
         for(auto & cam : cameras)
             all_threads_alive &= cam->ThreadAlive();
 
         if(all_threads_alive) {
-            for(auto & cam : cameras)
-                cam->WriteData();
+            std::string line(input);
+            std::istringstream iss(line);
+            std::vector<std::string> sym{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+
+            for(int i = 0; i < sym.size(); i++) {
+                std::string token = sym[i];
+
+                if(token == "laser0" || token == "l0") {
+                    for(auto & cam : cameras)
+                        cam->SetLaser(false);
+                } else if(token == "laser1" || token == "l1") {
+                    float power = -4;
+                    std::string param = i < sym.size() - 1 ? sym[i+1] : "";
+
+                    if(!param.empty())
+                        if(std::all_of(param.begin(), param.end(), ::isalpha))
+                            power = param == "min" ? -3 : param == "mid" ? -2 : param == "max" ? -1 : -4;
+                        else if(param.find_first_not_of(".0123456789") == std::string::npos)
+                            power = static_cast<float>(std::stod(param));
+
+                    for(auto & cam : cameras)
+                        cam->SetLaser(true, power);
+                } else if(token == "save" || token == "s") {
+                    for(auto & cam : cameras)
+                        cam->WriteData();
+                }
+            }
+
         }
     } while(all_threads_alive);
 
