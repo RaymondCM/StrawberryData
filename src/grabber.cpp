@@ -17,20 +17,29 @@ int main(int argc, char * argv[]) try
     if (list.size() == 0)
         throw std::runtime_error("No device detected.");
 
-    rs2::device dev = list.front();
+    std::vector<rs2::device> devices;
+    std::vector<RealSenseD400*> cameras;
 
-    // Initialise the device class
-    RealSenseD400 realsense_camera(dev);
-
+    // Initialise the devices
     // Wait for capture to end
-    while(realsense_camera.ThreadAlive()) {
+    for (int i = 0; i < list.size(); ++i) {
+        devices.push_back(list[0]);
+        cameras.push_back(new RealSenseD400(list[0]));
+    }
+
+    bool all_threads_alive = true;
+    do {
         std::cout << "Press enter to save data from all capture devices: ";
         std::cin.get();
 
-        // Check if still alive
-        if(realsense_camera.ThreadAlive())
-            realsense_camera.WriteData();
-    }
+        for(auto & cam : cameras)
+            all_threads_alive &= cam->ThreadAlive();
+
+        if(all_threads_alive) {
+            for(auto & cam : cameras)
+                cam->WriteData();
+        }
+    } while(all_threads_alive);
 
     return EXIT_SUCCESS;
 }
