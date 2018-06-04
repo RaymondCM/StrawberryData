@@ -14,22 +14,24 @@ public:
     ~RealSenseD400() override;
     void PrintDeviceInfo();
     void StabilizeExposure(int stabilization_window = 30);
+    const void SetLaser(bool status, float power=-4);
     void WriteData();
 private:
     // Device
     rs2::device dev_;
-    rs2::depth_sensor depth_sensor_;
 
+    rs2::depth_sensor depth_sensor_;
     float depth_sensor_scale_;
     std::string serial_number_;
+
     // Pipeline configuration
     rs2::config cfg;
-
     rs2::pipeline pipe_;
     rs2::pipeline_profile selection;
 
     // Point cloud
     rs2::colorizer color_map;
+
     rs2::pointcloud pc_;
 
     // OpenCV Windows
@@ -38,6 +40,7 @@ private:
 
     // Frame information
     rs2::frameset frames_;
+    int frame_id_ = 0;
 
     rs2::video_frame depth_, colour_, lir_, rir_, c_depth_;
 
@@ -51,13 +54,13 @@ private:
 
     // Dataset structure
     Strawberry::DataStructure data_structure_;
+
     // Visualisation flags
     bool gui_enabled_;
 
     // Utility
     void WriteVideoFrameMetaData(const std::string &file_name, rs2::video_frame &frame);
     bool WindowsAreOpen();
-
     void Visualise();
 
     // Thread overrides

@@ -170,6 +170,7 @@ const void RealSenseD400::Loop() {
         lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
         rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
 
+        frame_id_++;
         lock_mutex_.unlock();
 
         // Show the output
@@ -183,4 +184,26 @@ const void RealSenseD400::Loop() {
     }
 
     cancel_thread_ = true;
+}
+
+
+const void RealSenseD400::SetLaser(bool status, float power) {
+    if (depth_sensor_.supports(RS2_OPTION_EMITTER_ENABLED))
+        depth_sensor_.set_option(RS2_OPTION_EMITTER_ENABLED, status);
+
+    if (status && power != -4 && depth_sensor_.supports(RS2_OPTION_LASER_POWER))
+    {
+        // Query min and max values:
+        auto range = depth_sensor_.get_option_range(RS2_OPTION_LASER_POWER);
+
+        // Special values for -1:MAX -2:MID
+        if(power == -1)
+            power = range.max;
+        else if (power == -2)
+            power = (range.min + range.max) / 2;
+        else if (power == -3)
+            power = range.min;
+
+        depth_sensor_.set_option(RS2_OPTION_LASER_POWER, power);
+    }
 }
