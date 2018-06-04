@@ -1,9 +1,9 @@
 #include "RealSenseD400.hpp"
 
-RealSenseD400::RealSenseD400(rs2::device dev, bool gui_enabled) : dev_(dev),
-                                                                  depth_sensor_(dev.first<rs2::depth_sensor>()),
-                                                                  depth_(nullptr), colour_(nullptr), lir_(nullptr),
-                                                                  rir_(nullptr), c_depth_(nullptr), data_structure_(dev) {
+RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
+                                                          depth_(nullptr), colour_(nullptr), lir_(nullptr),
+                                                          rir_(nullptr), c_depth_(nullptr), data_structure_(dev),
+                                                          ThreadClass(60)  {
     // Print the device information
     PrintDeviceInfo();
 
@@ -21,17 +21,9 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui_enabled) : dev_(dev),
     // Get depth scale (device specific)
     depth_sensor_scale_ =  depth_sensor_.get_depth_scale();
 
-    gui_enabled_ = gui_enabled;
-    if(gui_enabled_) {
-        win_colour_ += " " + serial_number_;
-        win_ir_ += " " + serial_number_;
-        win_depth_ += " " + serial_number_;
+    gui_enabled_ = gui;
 
-        // Create preview GUI
-        cv::namedWindow(win_colour_);
-        cv::namedWindow(win_ir_);
-        cv::namedWindow(win_depth_);
-    }
+    StartThread();
 }
 
 RealSenseD400::~RealSenseD400() {
@@ -65,43 +57,6 @@ bool RealSenseD400::WindowsAreOpen() {
            cvGetWindowHandle(win_depth_.c_str());
 }
 
-void RealSenseD400::Stream() {
-    while(input_ != 'q' && WindowsAreOpen()) {
-        // Wait for a coherent set of frames
-        frames_ = pipe_.wait_for_frames();
-        depth_ = frames_.get_depth_frame();
-        colour_ = frames_.get_color_frame();
-        lir_ = frames_.get_infrared_frame(1);
-        rir_ = frames_.get_infrared_frame(2);
-        c_depth_ = color_map(depth_);
-
-        // Map to colour_ frame
-        pc_.map_to(colour_);
-        point_cloud_ = pc_.calculate(depth_);
-
-        // Validate the frames
-        if(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_) {
-            std::cerr << "Invalid frame, waiting for next coherent set" << std::endl;
-            continue;
-        }
-
-        // Create OpenCV objects
-        colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void*)colour_.get_data());
-        depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void*)depth_.get_data());
-        c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3, (void*)c_depth_.get_data());
-        lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
-        rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
-
-        // Show the output
-        Visualise();
-
-        // If the input_ is a space then save all of the data
-        if(input_ == ' ') {
-            WriteData();
-        }
-    }
-}
-
 void RealSenseD400::Visualise() {
     if(gui_enabled_) {
         // Concatenate side by side for rendering
@@ -120,6 +75,10 @@ void RealSenseD400::Visualise() {
 }
 
 void RealSenseD400::WriteData() {
+    // Lock prevents data being overwritten before written to disk
+    // delays further capture until written (cheap camera sync)
+    lock_mutex_.lock();
+
     //Update folder structure and create necessary folders
     data_structure_.UpdateFolderPaths();
 
@@ -136,6 +95,8 @@ void RealSenseD400::WriteData() {
     WriteVideoFrameMetaData(data_structure_.FilePath(RsType::DEPTH, true), depth_);
     WriteVideoFrameMetaData(data_structure_.FilePath(RsType::COLOUR, true), colour_);
     WriteVideoFrameMetaData(data_structure_.FilePath(RsType::IR, true), lir_);
+
+    lock_mutex_.unlock();
 }
 
 
@@ -157,4 +118,69 @@ void RealSenseD400::WriteVideoFrameMetaData(const std::string &file_name, rs2::v
     }
 
     csv.close();
+}
+
+const void RealSenseD400::Setup() {
+    if(gui_enabled_) {
+        win_colour_ += " " + serial_number_;
+        win_ir_ += " " + serial_number_;
+        win_depth_ += " " + serial_number_;
+
+        // Create preview GUI
+        cv::namedWindow(win_colour_);
+        cv::namedWindow(win_ir_);
+        cv::namedWindow(win_depth_);
+    }
+
+    StabilizeExposure();
+
+    Loop();
+}
+
+const void RealSenseD400::Loop() {
+    while(ThreadAlive() && input_ != 'q') {
+        // Wait for a coherent set of frames
+        frames_ = pipe_.wait_for_frames();
+
+        // When coherent frames arrive lock mutex to disable read/write to frame data
+        // also waits to override frame data if mutex is already locked
+        lock_mutex_.lock();
+
+        depth_ = frames_.get_depth_frame();
+        colour_ = frames_.get_color_frame();
+        lir_ = frames_.get_infrared_frame(1);
+        rir_ = frames_.get_infrared_frame(2);
+        c_depth_ = color_map(depth_);
+
+        // Map to colour_ frame
+        pc_.map_to(colour_);
+        point_cloud_ = pc_.calculate(depth_);
+
+        // Validate the frames
+        if(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_) {
+            std::cerr << "Invalid frame, waiting for next coherent set" << std::endl;
+            lock_mutex_.unlock();
+            continue;
+        }
+
+        // Create OpenCV objects
+        colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void*)colour_.get_data());
+        depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void*)depth_.get_data());
+        c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3, (void*)c_depth_.get_data());
+        lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
+        rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
+
+        lock_mutex_.unlock();
+
+        // Show the output
+        Visualise();
+    }
+
+    if(gui_enabled_) {
+        cv::destroyWindow(win_colour_);
+        cv::destroyWindow(win_depth_);
+        cv::destroyWindow(win_ir_);
+    }
+
+    cancel_thread_ = true;
 }

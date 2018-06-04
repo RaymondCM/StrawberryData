@@ -4,24 +4,27 @@
 #include <string>
 #include <librealsense2/rs.hpp>
 #include <opencv2/opencv.hpp>
+
+#include "ThreadClass.hpp"
 #include "Strawberry.hpp"
 
-class RealSenseD400 {
+class RealSenseD400 : public ThreadClass {
 public:
-    explicit RealSenseD400(rs2::device dev, bool gui_enabled_ = true);
-    ~RealSenseD400();
+    explicit RealSenseD400(rs2::device dev, bool gui = true);
+    ~RealSenseD400() override;
     void PrintDeviceInfo();
     void StabilizeExposure(int stabilization_window = 30);
-    void Stream();
+    void WriteData();
 private:
     // Device
     rs2::device dev_;
     rs2::depth_sensor depth_sensor_;
+
     float depth_sensor_scale_;
     std::string serial_number_;
-
     // Pipeline configuration
     rs2::config cfg;
+
     rs2::pipeline pipe_;
     rs2::pipeline_profile selection;
 
@@ -35,6 +38,7 @@ private:
 
     // Frame information
     rs2::frameset frames_;
+
     rs2::video_frame depth_, colour_, lir_, rir_, c_depth_;
 
     rs2::points point_cloud_;
@@ -47,7 +51,6 @@ private:
 
     // Dataset structure
     Strawberry::DataStructure data_structure_;
-
     // Visualisation flags
     bool gui_enabled_;
 
@@ -55,9 +58,11 @@ private:
     void WriteVideoFrameMetaData(const std::string &file_name, rs2::video_frame &frame);
     bool WindowsAreOpen();
 
-    void WriteData();
-
     void Visualise();
+
+    // Thread overrides
+    const void Setup() override;
+    const void Loop() override;
 };
 
 #endif //STRAWBERRYDATA_REALSENSED400_H

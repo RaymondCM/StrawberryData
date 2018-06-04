@@ -21,10 +21,16 @@ int main(int argc, char * argv[]) try
 
     // Initialise the device class
     RealSenseD400 realsense_camera(dev);
-    realsense_camera.StabilizeExposure();
 
-    // Start Capture
-    realsense_camera.Stream();
+    // Wait for capture to end
+    while(realsense_camera.ThreadAlive()) {
+        std::cout << "Press enter to save data from all capture devices: ";
+        std::cin.get();
+
+        // Check if still alive
+        if(realsense_camera.ThreadAlive())
+            realsense_camera.WriteData();
+    }
 
     return EXIT_SUCCESS;
 }
