@@ -66,6 +66,8 @@ private:
     // Thread overrides
     const void Setup() override;
     const void Loop() override;
+
+    void WriteDeviceData(const std::string &file_name);
 };
 
 #endif //STRAWBERRYDATA_REALSENSED400_H

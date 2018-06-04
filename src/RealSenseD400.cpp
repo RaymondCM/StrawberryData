@@ -120,6 +120,23 @@ void RealSenseD400::WriteVideoFrameMetaData(const std::string &file_name, rs2::v
     csv.close();
 }
 
+void RealSenseD400::WriteDeviceData(const std::string &file_name) {
+    std::ofstream csv;
+    csv.open(file_name);
+
+    // Camera Info
+    for (int i = 0; i < RS2_CAMERA_INFO_COUNT; ++i)
+        if(dev_.supports((rs2_camera_info) i))
+            csv << rs2_camera_info_to_string((rs2_camera_info) i) << "," << dev_.get_info((rs2_camera_info) i) << '\n';
+
+    // Depth Options
+    for (int i = 0; i < RS2_OPTION_COUNT; ++i)
+        if(depth_sensor_.supports((rs2_option) i))
+            csv << rs2_option_to_string((rs2_option) i) << "," << depth_sensor_.get_option((rs2_option) i) << '\n';
+
+    csv.close();
+}
+
 const void RealSenseD400::Setup() {
     if(gui_enabled_) {
         win_colour_ += " " + serial_number_;
@@ -133,6 +150,10 @@ const void RealSenseD400::Setup() {
     }
 
     StabilizeExposure();
+
+    //Update folder structure and create necessary folders
+    data_structure_.UpdateFolderPaths(true);
+    WriteDeviceData(data_structure_.folder_.string() + serial_number_ + "_meta.csv");
 
     Loop();
 }

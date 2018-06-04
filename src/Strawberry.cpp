@@ -11,15 +11,19 @@ Strawberry::DataStructure::DataStructure(std::string device_serial_number) {
     parent_ = boost::filesystem::path("data/" + serial_number_ + "/");
 }
 
-const void Strawberry::DataStructure::UpdateFolderPaths() {
+const void Strawberry::DataStructure::UpdateFolderPaths(bool stop_at_folder_depth) {
     UpdateTimestamp();
 
     folder_ = boost::filesystem::path(parent_.string() + date_ + "/");
     sub_folder_ = boost::filesystem::path(folder_.string() + time_ + "/");
 
-    // Create directories if they do not exist
-    if(!boost::filesystem::is_directory(sub_folder_) || !boost::filesystem::exists(sub_folder_))
-        boost::filesystem::create_directories(sub_folder_);
+    // Create directories if they do not exist (stop before sub folder if not writing a dataset)
+    if(stop_at_folder_depth)
+        if(!boost::filesystem::is_directory(folder_) || !boost::filesystem::exists(folder_))
+            boost::filesystem::create_directories(folder_);
+    else
+        if(!boost::filesystem::is_directory(sub_folder_) || !boost::filesystem::exists(sub_folder_))
+            boost::filesystem::create_directories(sub_folder_);
 }
 
 const std::string Strawberry::DataStructure::FilePath(RsType file_type, bool meta) {

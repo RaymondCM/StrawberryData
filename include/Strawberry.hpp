@@ -19,7 +19,7 @@ namespace Strawberry {
         explicit DataStructure(const char * device_serial_number);
         explicit DataStructure(std::string device_serial_number);
 
-        const void UpdateFolderPaths();
+        const void UpdateFolderPaths(bool stop_at_folder_depth = false);
         const std::string FilePath(RsType file_type, bool meta = false);
 
         boost::filesystem::path parent_, folder_, sub_folder_;
