@@ -173,8 +173,8 @@ const void RealSenseD400::Loop() {
         rir_ = frames_.get_infrared_frame(2);
         c_depth_ = color_map(depth_);
 
-        // Map to colour_ frame
-        pc_.map_to(colour_);
+        // Map to depth_ frame
+        pc_.map_to(depth_);
         point_cloud_ = pc_.calculate(depth_);
 
         // Validate the frames
