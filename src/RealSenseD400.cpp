@@ -26,6 +26,7 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_senso
 }
 
 RealSenseD400::~RealSenseD400() {
+    CloseGUI();
     pipe_.stop();
 }
 
@@ -146,9 +147,9 @@ const void RealSenseD400::Setup() {
         win_depth_ += " " + serial_number_;
 
         // Create preview GUI
-        cv::namedWindow(win_colour_);
-        cv::namedWindow(win_ir_);
-        cv::namedWindow(win_depth_);
+        cv::namedWindow(win_colour_, cv::WINDOW_GUI_EXPANDED);
+        cv::namedWindow(win_ir_, cv::WINDOW_GUI_EXPANDED);
+        cv::namedWindow(win_depth_, cv::WINDOW_GUI_EXPANDED);
     }
 
     StabilizeExposure();
@@ -159,31 +160,33 @@ const void RealSenseD400::Setup() {
 }
 
 const void RealSenseD400::WaitForFrames() {
-    std::cerr << serial_number_ << std::endl;
-    std::cerr << serial_number_ << std::endl;
-    std::cerr << serial_number_ << std::endl;
-    std::cerr << serial_number_ << std::endl;
+    //std::cout << "Camera " << serial_number_ << " waiting for frames" << std::endl;
 
     int attempts = 0;
     do {
-        if(attempts > 0)
-            std::cerr << "Invalid frame, waiting for next coherent set" << std::endl;
+        try {
+            if (attempts > 0)
+                std::cerr << "Invalid frame, waiting for next coherent set (Attempt " << attempts << ")" << std::endl;
 
-        // Wait for a coherent set of frames
-        frames_ = pipe_.wait_for_frames();
+            // Wait for a coherent set of frames
+            frames_ = pipe_.wait_for_frames();
 
-        depth_ = frames_.get_depth_frame();
-        colour_ = frames_.get_color_frame();
-        lir_ = frames_.get_infrared_frame(1);
-        rir_ = frames_.get_infrared_frame(2);
-        c_depth_ = color_map(depth_);
+            depth_ = frames_.get_depth_frame();
+            colour_ = frames_.get_color_frame();
+            lir_ = frames_.get_infrared_frame(1);
+            rir_ = frames_.get_infrared_frame(2);
+            c_depth_ = color_map(depth_);
 
-        // Map to depth_ frame
-        pc_.map_to(depth_);
-        point_cloud_ = pc_.calculate(depth_);
+            // Map to depth_ frame
+            pc_.map_to(depth_);
+            point_cloud_ = pc_.calculate(depth_);
 
-        // Validate the frames
-        attempts++;
+            // Validate the frames
+            attempts++;
+        } catch(rs2::error &e) {
+            std::cerr << "Camera " << serial_number_ << ": " << e.what() << std::endl;
+            attempts++;
+        }
     } while(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_);
 
 
@@ -198,13 +201,6 @@ const void RealSenseD400::WaitForFrames() {
 
     // Show the output
     Visualise();
-
-
-    if(gui_enabled_) {
-        cv::destroyWindow(win_colour_);
-        cv::destroyWindow(win_depth_);
-        cv::destroyWindow(win_ir_);
-    }
 }
 
 
@@ -226,5 +222,17 @@ const void RealSenseD400::SetLaser(bool status, float power) {
             power = range.min;
 
         depth_sensor_.set_option(RS2_OPTION_LASER_POWER, power);
+    }
+}
+
+rs2::pipeline_profile RealSenseD400::GetProfile() {
+    return selection;
+}
+
+void RealSenseD400::CloseGUI() {
+    if(gui_enabled_) {
+        cv::destroyWindow(win_colour_);
+        cv::destroyWindow(win_depth_);
+        cv::destroyWindow(win_ir_);
     }
 }

@@ -17,7 +17,8 @@ public:
     const void SetLaser(bool status, float power=-4);
     void WriteData();
     const void WaitForFrames();
-
+    rs2::pipeline_profile GetProfile();
+    void CloseGUI();
 private:
     // Device
     rs2::device dev_;
