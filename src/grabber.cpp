@@ -10,7 +10,8 @@
 void PrintHelp() {
     std::cout << "Controls: \n\t-save, s (Writes all output to disk)\n\t-laser0, l0 (Turns laser off)\n\t-laser1 <pa" <<
               "ram>, l1 <param> (Turns laser on)\n\t\t-<param> can be min(-3), mid(-2), max(-1) or any float value" <<
-              "\n\t-help, h (Displays help)" << "\n\t-quit, q (Quits the application)" << std::endl;
+              "\n\t-stab, st (Throws away frames for correcting exposure)" << "\n\t-help, h (Displays help)" <<
+              "\n\t-quit, q (Quits)" << std::endl;
 }
 
 int main(int argc, char *argv[]) try {
@@ -49,6 +50,8 @@ int main(int argc, char *argv[]) try {
                 cameras.SetLaser(true, power);
             } else if (token == "save" || token == "s") {
                 cameras.SaveFrames();
+            } else if(token == "stab" || token == "st") {
+                cameras.StabiliseExposure();
             } else if(token == "help" || token == "h") {
                 PrintHelp();
             } else if(token == "quit" || token == "q") {

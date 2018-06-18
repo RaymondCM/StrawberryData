@@ -1,6 +1,7 @@
 #include "MultiCamD400.hpp"
 
-MultiCamD400::MultiCamD400() : ThreadClass(60) {
+MultiCamD400::MultiCamD400(bool wait_for_stabilise_exposure) : ThreadClass(60) {
+    should_stabilise_exposure = wait_for_stabilise_exposure;
     StartThread();
 }
 
@@ -58,7 +59,7 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
     if (cameras_.find(serial_number) != cameras_.end())
         return;
 
-    cameras_.emplace(serial_number, new RealSenseD400(dev, true));
+    cameras_.emplace(serial_number, new RealSenseD400(dev, true, should_stabilise_exposure));
 }
 
 const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
@@ -66,14 +67,11 @@ const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
     std::lock_guard<std::mutex> lock(lock_mutex_);
     auto itr = cameras_.begin();
     while(itr != cameras_.end())
-    {
         if (info.was_removed(itr->second->GetProfile().get_device())) {
             itr->second->CloseGUI();
             itr = cameras_.erase(itr);
-        }
-        else
+        } else
             ++itr;
-    }
 }
 
 const void MultiCamD400::Loop() {
@@ -116,4 +114,20 @@ const void MultiCamD400::SetLaser(int index, bool laser, float power) {
 
 void MultiCamD400::Available() {
     while(!initialised);
+}
+
+const void MultiCamD400::StabiliseExposure() {
+    std::lock_guard<std::mutex> lock(lock_mutex_);
+
+    for(auto && cam : cameras_)
+        cam.second->StabiliseExposure();
+}
+
+const void MultiCamD400::StabiliseExposure(int index) {
+    std::lock_guard<std::mutex> lock(lock_mutex_);
+
+    int i = 0;
+    for(auto && cam : cameras_)
+        if(index == i++)
+            cam.second->StabiliseExposure();
 }
