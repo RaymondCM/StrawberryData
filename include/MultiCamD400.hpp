@@ -7,7 +7,7 @@
 
 class MultiCamD400 : ThreadClass {
 public:
-    MultiCamD400(bool wait_for_stabilise_exposure=false);
+    explicit MultiCamD400(bool wait_for_stabilise_exposure=false);
     const void AddDevice(rs2::device dev);
     const void RemoveDevice(const rs2::event_information& info);
     const void SaveFrames();

@@ -22,6 +22,7 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure)
 
     gui_enabled_ = gui;
 
+    // Throwaway some frames to stabilise the exposure
     if(stabilise_exposure)
         StabiliseExposure();
 
@@ -40,6 +41,7 @@ void RealSenseD400::StabiliseExposure(int stabilization_window) {
 }
 
 void RealSenseD400::PrintDeviceInfo() {
+    // Check available device information and print it to console
     std::cout << "Device Information: " << std::endl;
     for (int i = 0; i < RS2_CAMERA_INFO_COUNT; ++i) {
         std::string output = std::string(rs2_camera_info_to_string((rs2_camera_info) i)) + ": ";
@@ -55,6 +57,7 @@ void RealSenseD400::PrintDeviceInfo() {
 }
 
 bool RealSenseD400::WindowsAreOpen() {
+    // Attempt to decipher whether the OpenCV windows are open
     return cvGetWindowHandle(win_colour_.c_str()) &&
            cvGetWindowHandle(win_ir_.c_str()) &&
            cvGetWindowHandle(win_depth_.c_str());
@@ -170,21 +173,21 @@ const void RealSenseD400::WaitForFrames() {
                 std::cerr << "Invalid frame, waiting for next coherent set (Attempt " << attempts << ")" << std::endl;
 
             // Wait for a coherent set of frames
-            if(pipe_.poll_for_frames(&frames_)) {
+            //if(pipe_.poll_for_frames(&frames_)) {
+            frames_ = pipe_.wait_for_frames();
+            depth_ = frames_.get_depth_frame();
+            colour_ = frames_.get_color_frame();
+            lir_ = frames_.get_infrared_frame(1);
+            rir_ = frames_.get_infrared_frame(2);
+            c_depth_ = color_map(depth_);
 
-                depth_ = frames_.get_depth_frame();
-                colour_ = frames_.get_color_frame();
-                lir_ = frames_.get_infrared_frame(1);
-                rir_ = frames_.get_infrared_frame(2);
-                c_depth_ = color_map(depth_);
+            // Map to depth_ frame
+            pc_.map_to(depth_);
+            point_cloud_ = pc_.calculate(depth_);
 
-                // Map to depth_ frame
-                pc_.map_to(depth_);
-                point_cloud_ = pc_.calculate(depth_);
-
-                // Validate the frames
-                attempts++;
-            }
+            // Validate the frames
+            attempts++;
+            //}
         } catch(rs2::error &e) {
             std::cerr << "Camera " << serial_number_ << ": " << e.what() << std::endl;
             attempts++;

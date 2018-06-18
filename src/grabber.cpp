@@ -15,32 +15,40 @@ void PrintHelp() {
 }
 
 int main(int argc, char *argv[]) try {
+    // Initialise currently connected cameras and wait until ready
     MultiCamD400 cameras;
     cameras.Available();
 
+    // Print the system controls
     PrintHelp();
 
     char input[255];
     bool quit = false;
     do {
         std::cout << "Enter Control: ";
-        cameras.Available();
-
         std::cin.getline(input, 255, '\n');
 
+        // After receiving the command ensure the cameras are available
+        cameras.Available();
+
+        // Parse the input into tokens separated by space
         std::string line(input);
         std::istringstream iss(line);
         std::vector<std::string> sym{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
 
+        // For each token
         for (int i = 0; i < sym.size(); i++) {
             std::string token = sym[i];
 
+            // Check against available commands
             if (token == "laser0" || token == "l0") {
                 cameras.SetLaser(false);
             } else if (token == "laser1" || token == "l1") {
                 float power = -4;
+                // Get the next token and use it as a parameter for power
                 std::string param = i < sym.size() - 1 ? sym[i + 1] : "";
 
+                // Parse words to power levels
                 if (!param.empty())
                     if (std::all_of(param.begin(), param.end(), ::isalpha))
                         power = param == "min" ? -3 : param == "mid" ? -2 : param == "max" ? -1 : -4;

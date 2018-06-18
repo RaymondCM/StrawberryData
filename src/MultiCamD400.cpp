@@ -56,6 +56,7 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
 
     std::string serial_number(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
 
+    // Return if the device is already connected
     if (cameras_.find(serial_number) != cameras_.end())
         return;
 
@@ -63,8 +64,9 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
 }
 
 const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
-    // Go over the list of devices and check if it was disconnected
     std::lock_guard<std::mutex> lock(lock_mutex_);
+
+    // Go over the list of devices and check if it was disconnected if so remove it
     auto itr = cameras_.begin();
     while(itr != cameras_.end())
         if (info.was_removed(itr->second->GetProfile().get_device())) {
@@ -76,6 +78,7 @@ const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
 
 const void MultiCamD400::Loop() {
     std::lock_guard<std::mutex> lock(lock_mutex_);
+
     for(auto && cam : cameras_)
         cam.second->WaitForFrames();
 }
