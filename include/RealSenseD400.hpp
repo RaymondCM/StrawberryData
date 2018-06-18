@@ -10,10 +10,10 @@
 
 class RealSenseD400 {
 public:
-    explicit RealSenseD400(rs2::device dev, bool gui = true);
+    explicit RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure=false);
     ~RealSenseD400();
     void PrintDeviceInfo();
-    void StabilizeExposure(int stabilization_window = 30);
+    void StabiliseExposure(int stabilization_window = 30);
     const void SetLaser(bool status, float power=-4);
     void WriteData();
     const void WaitForFrames();

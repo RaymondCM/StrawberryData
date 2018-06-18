@@ -1,16 +1,16 @@
 #include "RealSenseD400.hpp"
 
-RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
-                                                          depth_(nullptr), colour_(nullptr), lir_(nullptr),
-                                                          rir_(nullptr), c_depth_(nullptr), data_structure_(dev) {
+RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
+                                                                                   depth_(nullptr), colour_(nullptr), lir_(nullptr),
+                                                                                   rir_(nullptr), c_depth_(nullptr), data_structure_(dev) {
     // Print the device information
     PrintDeviceInfo();
 
     // Enable IR, depth and colour_ streams at the highest quality streams
-    cfg.enable_stream(RS2_STREAM_INFRARED, 1, 1280, 720, RS2_FORMAT_Y8, 30); // Left IR (Colour registered)
-    cfg.enable_stream(RS2_STREAM_INFRARED, 2, 1280, 720, RS2_FORMAT_Y8, 30); // Right IR
-    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
-    cfg.enable_stream(RS2_STREAM_COLOR, 1920, 1080, RS2_FORMAT_BGR8, 30);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 1, 1280, 720, RS2_FORMAT_Y8, 6); // Left IR (Colour registered)
+    cfg.enable_stream(RS2_STREAM_INFRARED, 2, 1280, 720, RS2_FORMAT_Y8, 6); // Right IR
+    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 6);
+    cfg.enable_stream(RS2_STREAM_COLOR, 1920, 1080, RS2_FORMAT_BGR8, 6);
     serial_number_ = std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
     cfg.enable_device(serial_number_);
 
@@ -22,6 +22,9 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_senso
 
     gui_enabled_ = gui;
 
+    if(stabilise_exposure)
+        StabiliseExposure();
+
     Setup();
 }
 
@@ -30,9 +33,9 @@ RealSenseD400::~RealSenseD400() {
     pipe_.stop();
 }
 
-void RealSenseD400::StabilizeExposure(int stabilization_window) {
+void RealSenseD400::StabiliseExposure(int stabilization_window) {
     // Allow auto exposure to stabilize
-    for(int i = 0; i < 30; i++)
+    for(int i = 0; i < stabilization_window; i++)
         rs2::frameset exposure_frames = pipe_.wait_for_frames();
 }
 
@@ -152,8 +155,6 @@ const void RealSenseD400::Setup() {
         cv::namedWindow(win_depth_, cv::WINDOW_GUI_EXPANDED);
     }
 
-    StabilizeExposure();
-
     //Update folder structure and create necessary folders
     data_structure_.UpdateFolderPaths(true);
     WriteDeviceData(data_structure_.folder_.string() + serial_number_ + "_meta.csv");
@@ -169,20 +170,21 @@ const void RealSenseD400::WaitForFrames() {
                 std::cerr << "Invalid frame, waiting for next coherent set (Attempt " << attempts << ")" << std::endl;
 
             // Wait for a coherent set of frames
-            frames_ = pipe_.wait_for_frames();
+            if(pipe_.poll_for_frames(&frames_)) {
 
-            depth_ = frames_.get_depth_frame();
-            colour_ = frames_.get_color_frame();
-            lir_ = frames_.get_infrared_frame(1);
-            rir_ = frames_.get_infrared_frame(2);
-            c_depth_ = color_map(depth_);
+                depth_ = frames_.get_depth_frame();
+                colour_ = frames_.get_color_frame();
+                lir_ = frames_.get_infrared_frame(1);
+                rir_ = frames_.get_infrared_frame(2);
+                c_depth_ = color_map(depth_);
 
-            // Map to depth_ frame
-            pc_.map_to(depth_);
-            point_cloud_ = pc_.calculate(depth_);
+                // Map to depth_ frame
+                pc_.map_to(depth_);
+                point_cloud_ = pc_.calculate(depth_);
 
-            // Validate the frames
-            attempts++;
+                // Validate the frames
+                attempts++;
+            }
         } catch(rs2::error &e) {
             std::cerr << "Camera " << serial_number_ << ": " << e.what() << std::endl;
             attempts++;
