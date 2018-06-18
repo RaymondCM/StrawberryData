@@ -8,14 +8,16 @@
 #include "ThreadClass.hpp"
 #include "Strawberry.hpp"
 
-class RealSenseD400 : public ThreadClass {
+class RealSenseD400 {
 public:
     explicit RealSenseD400(rs2::device dev, bool gui = true);
-    ~RealSenseD400() override;
+    ~RealSenseD400();
     void PrintDeviceInfo();
     void StabilizeExposure(int stabilization_window = 30);
     const void SetLaser(bool status, float power=-4);
     void WriteData();
+    const void WaitForFrames();
+
 private:
     // Device
     rs2::device dev_;
@@ -63,9 +65,7 @@ private:
     bool WindowsAreOpen();
     void Visualise();
 
-    // Thread overrides
-    const void Setup() override;
-    const void Loop() override;
+    const void Setup();
 
     void WriteDeviceData(const std::string &file_name);
 };

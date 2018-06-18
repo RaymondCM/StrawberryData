@@ -26,56 +26,55 @@ int main(int argc, char *argv[]) try {
     // Initialise the devices
     // Wait for capture to end
     for (int i = 0; i < list.size(); ++i) {
-        devices.push_back(list[0]);
-        cameras.push_back(new RealSenseD400(list[0]));
+        devices.push_back(list[i]);
+        cameras.push_back(new RealSenseD400(list[i], true));
     }
 
     PrintHelp();
 
-    bool all_threads_alive = true;
     char input[255];
-
+    bool quit = false;
     do {
         std::cout << "Enter Control: ";
         std::cin.getline(input, 255, '\n');
 
+        std::string line(input);
+        std::istringstream iss(line);
+        std::vector<std::string> sym{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+
         for (auto &cam : cameras)
-            all_threads_alive &= cam->ThreadAlive();
+            cam->WaitForFrames();
 
-        if (all_threads_alive) {
-            std::string line(input);
-            std::istringstream iss(line);
-            std::vector<std::string> sym{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+        for (int i = 0; i < sym.size(); i++) {
+            std::string token = sym[i];
 
-            for (int i = 0; i < sym.size(); i++) {
-                std::string token = sym[i];
+            if (token == "laser0" || token == "l0") {
+                for (auto &cam : cameras)
+                    cam->SetLaser(false);
+            } else if (token == "laser1" || token == "l1") {
+                float power = -4;
+                std::string param = i < sym.size() - 1 ? sym[i + 1] : "";
 
-                if (token == "laser0" || token == "l0") {
-                    for (auto &cam : cameras)
-                        cam->SetLaser(false);
-                } else if (token == "laser1" || token == "l1") {
-                    float power = -4;
-                    std::string param = i < sym.size() - 1 ? sym[i + 1] : "";
+                if (!param.empty())
+                    if (std::all_of(param.begin(), param.end(), ::isalpha))
+                        power = param == "min" ? -3 : param == "mid" ? -2 : param == "max" ? -1 : -4;
+                    else if (param.find_first_not_of(".0123456789") == std::string::npos)
+                        power = static_cast<float>(std::stod(param));
 
-                    if (!param.empty())
-                        if (std::all_of(param.begin(), param.end(), ::isalpha))
-                            power = param == "min" ? -3 : param == "mid" ? -2 : param == "max" ? -1 : -4;
-                        else if (param.find_first_not_of(".0123456789") == std::string::npos)
-                            power = static_cast<float>(std::stod(param));
-
-                    for (auto &cam : cameras)
-                        cam->SetLaser(true, power);
-                } else if (token == "save" || token == "s") {
-                    for (auto &cam : cameras)
-                        cam->WriteData();
-                } else if(token == "help" || token == "h") {
-                    PrintHelp();
-                }
+                for (auto &cam : cameras)
+                    cam->SetLaser(true, power);
+            } else if (token == "save" || token == "s") {
+                for (auto &cam : cameras)
+                    cam->WriteData();
+            } else if(token == "help" || token == "h") {
+                PrintHelp();
+            } else if(token == "quit" || token == "q") {
+                quit = true;
             }
-
         }
-    } while (all_threads_alive);
+    } while (!quit);
 
+    std::cout << "Threads terminated" << std::endl;
     return EXIT_SUCCESS;
 }
 catch (const rs2::error &e) {

@@ -2,8 +2,7 @@
 
 RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
                                                           depth_(nullptr), colour_(nullptr), lir_(nullptr),
-                                                          rir_(nullptr), c_depth_(nullptr), data_structure_(dev),
-                                                          ThreadClass(60)  {
+                                                          rir_(nullptr), c_depth_(nullptr), data_structure_(dev) {
     // Print the device information
     PrintDeviceInfo();
 
@@ -23,7 +22,7 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui) : dev_(dev), depth_senso
 
     gui_enabled_ = gui;
 
-    StartThread();
+    Setup();
 }
 
 RealSenseD400::~RealSenseD400() {
@@ -75,28 +74,31 @@ void RealSenseD400::Visualise() {
 }
 
 void RealSenseD400::WriteData() {
-    // Lock prevents data being overwritten before written to disk
-    // delays further capture until written (cheap camera sync)
-    lock_mutex_.lock();
-
     //Update folder structure and create necessary folders
     data_structure_.UpdateFolderPaths();
 
-    // Save the files to disk
-    std::cout << "Writing files " << data_structure_.sub_folder_.string() << std::endl;
-    cv::imwrite(data_structure_.FilePath(RsType::DEPTH), depth_mat_);
-    cv::imwrite(data_structure_.FilePath(RsType::COLOURED_DEPTH), c_depth_mat_);
-    cv::imwrite(data_structure_.FilePath(RsType::COLOUR), colour_mat_);
-    cv::imwrite(data_structure_.FilePath(RsType::IR_LEFT), lir_mat_);
-    cv::imwrite(data_structure_.FilePath(RsType::IR_RIGHT), rir_mat_);
-    point_cloud_.export_to_ply(data_structure_.FilePath(RsType::POINT_CLOUD), colour_);
+    try {
+        // Save the files to disk
+        std::cout << "Writing files " << data_structure_.sub_folder_.string() << std::endl;
+        cv::imwrite(data_structure_.FilePath(RsType::DEPTH), depth_mat_);
+        cv::imwrite(data_structure_.FilePath(RsType::COLOURED_DEPTH), c_depth_mat_);
+        cv::imwrite(data_structure_.FilePath(RsType::COLOUR), colour_mat_);
+        cv::imwrite(data_structure_.FilePath(RsType::IR_LEFT), lir_mat_);
+        cv::imwrite(data_structure_.FilePath(RsType::IR_RIGHT), rir_mat_);
+        point_cloud_.export_to_ply(data_structure_.FilePath(RsType::POINT_CLOUD), colour_);
 
-    // Write meta data
-    WriteVideoFrameMetaData(data_structure_.FilePath(RsType::DEPTH, true), depth_);
-    WriteVideoFrameMetaData(data_structure_.FilePath(RsType::COLOUR, true), colour_);
-    WriteVideoFrameMetaData(data_structure_.FilePath(RsType::IR, true), lir_);
-
-    lock_mutex_.unlock();
+        // Write meta data
+        WriteVideoFrameMetaData(data_structure_.FilePath(RsType::DEPTH, true), depth_);
+        WriteVideoFrameMetaData(data_structure_.FilePath(RsType::COLOUR, true), colour_);
+        WriteVideoFrameMetaData(data_structure_.FilePath(RsType::IR, true), lir_);
+    }
+    catch (const rs2::error &e) {
+        std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    "
+                  << e.what() << std::endl;
+    }
+    catch (const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 
@@ -154,18 +156,21 @@ const void RealSenseD400::Setup() {
     //Update folder structure and create necessary folders
     data_structure_.UpdateFolderPaths(true);
     WriteDeviceData(data_structure_.folder_.string() + serial_number_ + "_meta.csv");
-
-    Loop();
 }
 
-const void RealSenseD400::Loop() {
-    while(ThreadAlive() && input_ != 'q') {
+const void RealSenseD400::WaitForFrames() {
+    std::cerr << serial_number_ << std::endl;
+    std::cerr << serial_number_ << std::endl;
+    std::cerr << serial_number_ << std::endl;
+    std::cerr << serial_number_ << std::endl;
+
+    int attempts = 0;
+    do {
+        if(attempts > 0)
+            std::cerr << "Invalid frame, waiting for next coherent set" << std::endl;
+
         // Wait for a coherent set of frames
         frames_ = pipe_.wait_for_frames();
-
-        // When coherent frames arrive lock mutex to disable read/write to frame data
-        // also waits to override frame data if mutex is already locked
-        lock_mutex_.lock();
 
         depth_ = frames_.get_depth_frame();
         colour_ = frames_.get_color_frame();
@@ -178,33 +183,28 @@ const void RealSenseD400::Loop() {
         point_cloud_ = pc_.calculate(depth_);
 
         // Validate the frames
-        if(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_) {
-            std::cerr << "Invalid frame, waiting for next coherent set" << std::endl;
-            lock_mutex_.unlock();
-            continue;
-        }
+        attempts++;
+    } while(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_);
 
-        // Create OpenCV objects
-        colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void*)colour_.get_data());
-        depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void*)depth_.get_data());
-        c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3, (void*)c_depth_.get_data());
-        lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
-        rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
 
-        frame_id_++;
-        lock_mutex_.unlock();
+    // Create OpenCV objects
+    colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void*)colour_.get_data());
+    depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void*)depth_.get_data());
+    c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3, (void*)c_depth_.get_data());
+    lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
+    rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
 
-        // Show the output
-        Visualise();
-    }
+    frame_id_++;
+
+    // Show the output
+    Visualise();
+
 
     if(gui_enabled_) {
         cv::destroyWindow(win_colour_);
         cv::destroyWindow(win_depth_);
         cv::destroyWindow(win_ir_);
     }
-
-    cancel_thread_ = true;
 }
 
 
