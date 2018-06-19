@@ -1,6 +1,6 @@
 #include "MultiCamD400.hpp"
 
-MultiCamD400::MultiCamD400(bool wait_for_stabilise_exposure) : ThreadClass(60) {
+MultiCamD400::MultiCamD400(bool wait_for_stabilise_exposure, unsigned int hz) : ThreadClass(hz) {
     should_stabilise_exposure = wait_for_stabilise_exposure;
     StartThread();
 }
@@ -51,7 +51,16 @@ const void MultiCamD400::Setup() {
     }
 }
 
+const void MultiCamD400::Loop() {
+    if(!loop_paused_) {
+        std::lock_guard<std::mutex> lock(lock_mutex_);
+        for (auto &&cam : cameras_)
+            cam.second->WaitForFrames();
+    }
+}
+
 const void MultiCamD400::AddDevice(rs2::device dev) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     std::string serial_number(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
@@ -64,6 +73,7 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
 }
 
 const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     // Go over the list of devices and check if it was disconnected if so remove it
@@ -76,21 +86,16 @@ const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {
             ++itr;
 }
 
-const void MultiCamD400::Loop() {
-    std::lock_guard<std::mutex> lock(lock_mutex_);
-
-    for(auto && cam : cameras_)
-        cam.second->WaitForFrames();
-}
-
 const void MultiCamD400::SaveFrames() {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    for(auto && cam : cameras_)
+    for (auto &&cam : cameras_)
         cam.second->WriteData();
 }
 
 const void MultiCamD400::SaveFrames(int index) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     int i = 0;
@@ -100,6 +105,7 @@ const void MultiCamD400::SaveFrames(int index) {
 }
 
 const void MultiCamD400::SetLaser(bool laser, float power) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     for(auto && cam : cameras_)
@@ -107,6 +113,7 @@ const void MultiCamD400::SetLaser(bool laser, float power) {
 }
 
 const void MultiCamD400::SetLaser(int index, bool laser, float power) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     int i = 0;
@@ -120,6 +127,7 @@ void MultiCamD400::Available() {
 }
 
 const void MultiCamD400::StabiliseExposure() {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     for(auto && cam : cameras_)
@@ -127,10 +135,15 @@ const void MultiCamD400::StabiliseExposure() {
 }
 
 const void MultiCamD400::StabiliseExposure(int index) {
+    flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
     int i = 0;
     for(auto && cam : cameras_)
         if(index == i++)
             cam.second->StabiliseExposure();
+}
+
+const void MultiCamD400::Pause(bool pause) {
+    loop_paused_ = pause;
 }

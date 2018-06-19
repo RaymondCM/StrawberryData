@@ -16,7 +16,8 @@ void PrintHelp() {
 
 int main(int argc, char *argv[]) try {
     // Initialise currently connected cameras and wait until ready
-    MultiCamD400 cameras;
+    // Set refresh rate to 20 Hz since frame rate is only 6
+    MultiCamD400 cameras(false, 20);
     cameras.Available();
 
     // Print the system controls
