@@ -1,8 +1,11 @@
 #include "RealSenseD400.hpp"
 
-RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
-                                                                                   depth_(nullptr), colour_(nullptr), lir_(nullptr),
-                                                                                   rir_(nullptr), c_depth_(nullptr), data_structure_(dev) {
+RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure) : dev_(dev), depth_sensor_(
+        dev.first<rs2::depth_sensor>()),
+                                                                                   depth_(nullptr), colour_(nullptr),
+                                                                                   lir_(nullptr),
+                                                                                   rir_(nullptr), c_depth_(nullptr),
+                                                                                   data_structure_(dev) {
     // Print the device information
     PrintDeviceInfo();
 
@@ -18,12 +21,12 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure)
     selection = pipe_.start(cfg);
 
     // Get depth scale (device specific)
-    depth_sensor_scale_ =  depth_sensor_.get_depth_scale();
+    depth_sensor_scale_ = depth_sensor_.get_depth_scale();
 
     gui_enabled_ = gui;
 
     // Throwaway some frames to stabilise the exposure
-    if(stabilise_exposure)
+    if (stabilise_exposure)
         StabiliseExposure();
 
     Setup();
@@ -36,7 +39,8 @@ RealSenseD400::~RealSenseD400() {
 
 void RealSenseD400::StabiliseExposure(int stabilization_window) {
     // Allow auto exposure to stabilize
-    for(int i = 0; i < stabilization_window; i++)
+    std::cout << "Camera " << serial_number_ << ": Dropping " << stabilization_window << " frames" << std::endl;
+    for (int i = 0; i < stabilization_window; i++)
         rs2::frameset exposure_frames = pipe_.wait_for_frames();
 }
 
@@ -48,7 +52,7 @@ void RealSenseD400::PrintDeviceInfo() {
 
         try {
             output += std::string(dev_.get_info((rs2_camera_info) i));
-        } catch (const rs2::error&) {
+        } catch (const rs2::error &) {
             output += "Not available";
         }
 
@@ -64,7 +68,7 @@ bool RealSenseD400::WindowsAreOpen() {
 }
 
 void RealSenseD400::Visualise() {
-    if(gui_enabled_) {
+    if (gui_enabled_) {
         // Concatenate side by side for rendering
         depth_mat_.convertTo(depth_mat_8bit, CV_8UC1, 1.0 / 256.0);
         cv::cvtColor(depth_mat_8bit, depth_mat_8bit, cv::COLOR_GRAY2BGR);
@@ -86,7 +90,7 @@ void RealSenseD400::WriteData() {
 
     try {
         // Save the files to disk
-        std::cout << "Writing files " << data_structure_.sub_folder_.string() << std::endl;
+        std::cout << "Camera " << serial_number_ << ": Writing " << data_structure_.sub_folder_.string() << std::endl;
         cv::imwrite(data_structure_.FilePath(RsType::DEPTH), depth_mat_);
         cv::imwrite(data_structure_.FilePath(RsType::COLOURED_DEPTH), c_depth_mat_);
         cv::imwrite(data_structure_.FilePath(RsType::COLOUR), colour_mat_);
@@ -117,12 +121,10 @@ void RealSenseD400::WriteVideoFrameMetaData(const std::string &file_name, rs2::v
     csv << "Stream," << rs2_stream_to_string(frame.get_profile().stream_type()) << "\nMetadata Attribute,Value\n";
 
     // Record all the available metadata attributes
-    for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++)
-    {
-        if (frame.supports_frame_metadata((rs2_frame_metadata_value)i))
-        {
-            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << "," <<
-                frame.get_frame_metadata((rs2_frame_metadata_value)i) << "\n";
+    for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++) {
+        if (frame.supports_frame_metadata((rs2_frame_metadata_value) i)) {
+            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value) i) << "," <<
+                frame.get_frame_metadata((rs2_frame_metadata_value) i) << "\n";
         }
     }
 
@@ -133,21 +135,23 @@ void RealSenseD400::WriteDeviceData(const std::string &file_name) {
     std::ofstream csv;
     csv.open(file_name);
 
+    std::cout << "Camera " << serial_number_ << ": Writing device data " << file_name << std::endl;
+
     // Camera Info
     for (int i = 0; i < RS2_CAMERA_INFO_COUNT; ++i)
-        if(dev_.supports((rs2_camera_info) i))
+        if (dev_.supports((rs2_camera_info) i))
             csv << rs2_camera_info_to_string((rs2_camera_info) i) << "," << dev_.get_info((rs2_camera_info) i) << '\n';
 
     // Depth Options
     for (int i = 0; i < RS2_OPTION_COUNT; ++i)
-        if(depth_sensor_.supports((rs2_option) i))
+        if (depth_sensor_.supports((rs2_option) i))
             csv << rs2_option_to_string((rs2_option) i) << "," << depth_sensor_.get_option((rs2_option) i) << '\n';
 
     csv.close();
 }
 
 const void RealSenseD400::Setup() {
-    if(gui_enabled_) {
+    if (gui_enabled_) {
         win_colour_ += " " + serial_number_;
         win_ir_ += " " + serial_number_;
         win_depth_ += " " + serial_number_;
@@ -170,7 +174,8 @@ const void RealSenseD400::WaitForFrames() {
     do {
         try {
             if (attempts > 0)
-                std::cerr << "Invalid frame, waiting for next coherent set (Attempt " << attempts << ")" << std::endl;
+                std::cerr << "\nCamera " << serial_number_ << ": Invalid frame, waiting for next coherent set (Attempt"
+                          << attempts << ")" << std::endl;
 
             // Wait for a coherent set of frames
             //if(pipe_.poll_for_frames(&frames_)) {
@@ -188,19 +193,20 @@ const void RealSenseD400::WaitForFrames() {
             // Validate the frames
             attempts++;
             //}
-        } catch(rs2::error &e) {
+        } catch (rs2::error &e) {
             std::cerr << "Camera " << serial_number_ << ": " << e.what() << std::endl;
             attempts++;
         }
-    } while(!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_);
+    } while (!colour_ || !depth_ || !c_depth_ || !lir_ || !rir_ || !point_cloud_);
 
 
     // Create OpenCV objects
-    colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void*)colour_.get_data());
-    depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void*)depth_.get_data());
-    c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3, (void*)c_depth_.get_data());
-    lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void*)lir_.get_data());
-    rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void*)rir_.get_data());
+    colour_mat_ = cv::Mat(cv::Size(colour_.get_width(), colour_.get_height()), CV_8UC3, (void *) colour_.get_data());
+    depth_mat_ = cv::Mat(cv::Size(depth_.get_width(), depth_.get_height()), CV_16UC1, (void *) depth_.get_data());
+    c_depth_mat_ = cv::Mat(cv::Size(c_depth_.get_width(), c_depth_.get_height()), CV_8UC3,
+                           (void *) c_depth_.get_data());
+    lir_mat_ = cv::Mat(cv::Size(lir_.get_width(), lir_.get_height()), CV_8UC1, (void *) lir_.get_data());
+    rir_mat_ = cv::Mat(cv::Size(rir_.get_width(), rir_.get_height()), CV_8UC1, (void *) rir_.get_data());
 
     frame_id_++;
 
@@ -210,16 +216,17 @@ const void RealSenseD400::WaitForFrames() {
 
 
 const void RealSenseD400::SetLaser(bool status, float power) {
+    std::cout << "Camera " << serial_number_ << ": Setting laser to " << (status ? "on" : "off");
+
     if (depth_sensor_.supports(RS2_OPTION_EMITTER_ENABLED))
         depth_sensor_.set_option(RS2_OPTION_EMITTER_ENABLED, status);
 
-    if (status && power != -4 && depth_sensor_.supports(RS2_OPTION_LASER_POWER))
-    {
+    if (status && power != -4 && depth_sensor_.supports(RS2_OPTION_LASER_POWER)) {
         // Query min and max values:
         auto range = depth_sensor_.get_option_range(RS2_OPTION_LASER_POWER);
 
         // Special values for -1:MAX -2:MID
-        if(power == -1)
+        if (power == -1)
             power = range.max;
         else if (power == -2)
             power = (range.min + range.max) / 2;
@@ -227,6 +234,9 @@ const void RealSenseD400::SetLaser(bool status, float power) {
             power = range.min;
 
         depth_sensor_.set_option(RS2_OPTION_LASER_POWER, power);
+        std::cout << " at " << power << " power" << std::endl;
+    } else {
+        std::cout << std::endl;
     }
 }
 
@@ -235,7 +245,7 @@ rs2::pipeline_profile RealSenseD400::GetProfile() {
 }
 
 void RealSenseD400::CloseGUI() {
-    if(gui_enabled_) {
+    if (gui_enabled_) {
         cv::destroyWindow(win_colour_);
         cv::destroyWindow(win_depth_);
         cv::destroyWindow(win_ir_);
