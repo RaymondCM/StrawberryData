@@ -157,9 +157,9 @@ const void RealSenseD400::Setup() {
         win_depth_ += " " + serial_number_;
 
         // Create preview GUI
-        cv::namedWindow(win_colour_, cv::WINDOW_GUI_EXPANDED);
-        cv::namedWindow(win_ir_, cv::WINDOW_GUI_EXPANDED);
-        cv::namedWindow(win_depth_, cv::WINDOW_GUI_EXPANDED);
+        //cv::namedWindow(win_colour_, cv::WINDOW_GUI_EXPANDED | CV_WINDOW_NORMAL | CV_GUI_NORMAL);
+        //cv::namedWindow(win_ir_, cv::WINDOW_GUI_EXPANDED | CV_WINDOW_NORMAL | CV_GUI_NORMAL);
+        //cv::namedWindow(win_depth_, cv::WINDOW_GUI_EXPANDED | CV_WINDOW_NORMAL | CV_GUI_NORMAL);
     }
 
     //Update folder structure and create necessary folders
