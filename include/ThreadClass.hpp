@@ -34,7 +34,7 @@ protected:
     //Thread timers for extended implementation
     size_t refresh_rate_ = 100;
     std::chrono::system_clock::time_point start_, end_;
-    long long int thread_timeout_, ms_timeout_;
+    long long int sleep_for_, ms_timeout_;
 
     //Initialisation Parameters
     const bool StartThread();

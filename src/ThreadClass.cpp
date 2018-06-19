@@ -38,11 +38,11 @@ const void ThreadClass::Setup() {
 
             //Calculate how long the thread should sleep for
             // e.g. if Loop() took 4ms and freq is 100Hz then only sleep for 6ms instead of 10ms
-            thread_timeout_ = ms_timeout_ - std::chrono::duration_cast<std::chrono::milliseconds>(end_ - start_).count();
+            sleep_for_ = ms_timeout_ - std::chrono::duration_cast<std::chrono::milliseconds>(end_ - start_).count();
 
             //Refresh Every N(Hz) by calculating timeout in ms - time took to execute (if < 0 then = 0)
-            if (thread_timeout_ >= 0)
-                std::this_thread::sleep_for(std::chrono::milliseconds(thread_timeout_));
+            if (sleep_for_ >= 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleep_for_));
 
         } catch (const std::exception &err) {
             std::cerr << "Error: " << err.what() << std::endl;
