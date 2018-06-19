@@ -132,8 +132,10 @@ const void MultiCamD400::StabiliseExposure() {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
+    std::vector<std::thread> threads;
     for (auto &&cam : cameras_)
-        cam.second->StabiliseExposure();
+        threads.emplace_back(std::bind([&cam]() { cam.second->StabiliseExposure(); }));
+    std::for_each(threads.begin(), threads.end(), [](std::thread &t) { t.join(); });
 }
 
 const void MultiCamD400::StabiliseExposure(int index) {
