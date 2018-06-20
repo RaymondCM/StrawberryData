@@ -16,7 +16,7 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
 
     int d_width = depth_config["width"], c_width = colour_config["width"];
     int d_height = depth_config["height"], c_height = colour_config["height"];
-    int d_fps = depth_config["frame_rate"], c_fps = colour_config["frame_rate"];
+    int d_fps = depth_config["frame-rate"], c_fps = colour_config["frame-rate"];
 
     // Enable IR, depth and colour_ streams at the highest quality streams
     cfg.enable_stream(RS2_STREAM_INFRARED, 1, d_width, d_height, RS2_FORMAT_Y8, d_fps); // Left IR (Colour registered)
