@@ -1,19 +1,28 @@
+#include <ConfigManager.hpp>
 #include "RealSenseD400.hpp"
 
-RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure) : dev_(dev), depth_sensor_(
-        dev.first<rs2::depth_sensor>()),
-                                                                                   depth_(nullptr), colour_(nullptr),
-                                                                                   lir_(nullptr),
-                                                                                   rir_(nullptr), c_depth_(nullptr),
-                                                                                   data_structure_(dev) {
+RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.first<rs2::depth_sensor>()),
+                                                depth_(nullptr), colour_(nullptr),
+                                                lir_(nullptr),
+                                                rir_(nullptr), c_depth_(nullptr),
+                                                data_structure_(dev) {
     // Print the device information
     PrintDeviceInfo();
 
+    // Get resolution etc from config file
+    ConfigManager *config = ConfigManager::GetInstance();
+    nlohmann::json depth_config = config->Get("stream-depth");
+    nlohmann::json colour_config = config->Get("stream-colour");
+
+    int d_width = depth_config["width"], c_width = colour_config["width"];
+    int d_height = depth_config["height"], c_height = colour_config["height"];
+    int d_fps = depth_config["frame_rate"], c_fps = colour_config["frame_rate"];
+
     // Enable IR, depth and colour_ streams at the highest quality streams
-    cfg.enable_stream(RS2_STREAM_INFRARED, 1, 1280, 720, RS2_FORMAT_Y8, 6); // Left IR (Colour registered)
-    cfg.enable_stream(RS2_STREAM_INFRARED, 2, 1280, 720, RS2_FORMAT_Y8, 6); // Right IR
-    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 6);
-    cfg.enable_stream(RS2_STREAM_COLOR, 1920, 1080, RS2_FORMAT_BGR8, 6);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 1, d_width, d_height, RS2_FORMAT_Y8, d_fps); // Left IR (Colour registered)
+    cfg.enable_stream(RS2_STREAM_INFRARED, 2, d_width, d_height, RS2_FORMAT_Y8, d_fps); // Right IR
+    cfg.enable_stream(RS2_STREAM_DEPTH, d_width, d_height, RS2_FORMAT_Z16, d_fps);
+    cfg.enable_stream(RS2_STREAM_COLOR, c_width, c_height, RS2_FORMAT_BGR8, c_fps);
     serial_number_ = std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
     cfg.enable_device(serial_number_);
 
@@ -23,11 +32,14 @@ RealSenseD400::RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure)
     // Get depth scale (device specific)
     depth_sensor_scale_ = depth_sensor_.get_depth_scale();
 
-    gui_enabled_ = gui;
+    gui_enabled_ = config->Get("gui-enabled");
 
     // Throwaway some frames to stabilise the exposure
-    if (stabilise_exposure)
-        StabiliseExposure();
+    if (config->Get("stabilise-exposure"))
+        StabiliseExposure(config->Get("stabilise-exposure-count"));
+
+    // Update save path
+    data_structure_.UpdatePathPrefix(config->Get("save-path-prefix"));
 
     Setup();
 }

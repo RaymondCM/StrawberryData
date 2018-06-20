@@ -15,10 +15,11 @@ namespace Strawberry {
 
     class DataStructure {
     public:
-        explicit DataStructure(const rs2::device &device);
-        explicit DataStructure(const char * device_serial_number);
-        explicit DataStructure(std::string device_serial_number);
+        explicit DataStructure(const rs2::device &device, std::string path_prefix = "./");
+        explicit DataStructure(const char * device_serial_number, std::string path_prefix = "./");
+        explicit DataStructure(std::string device_serial_number, std::string path_prefix = "./");
 
+        const void UpdatePathPrefix(std::string path_prefix);
         const void UpdateFolderPaths(bool stop_at_folder_depth = false);
         const std::string FilePath(RsType file_type, bool meta = false);
 

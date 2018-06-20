@@ -1,7 +1,6 @@
 #include "MultiCamD400.hpp"
 
-MultiCamD400::MultiCamD400(bool wait_for_stabilise_exposure, unsigned int hz) : ThreadClass(hz) {
-    should_stabilise_exposure = wait_for_stabilise_exposure;
+MultiCamD400::MultiCamD400(unsigned int hz) : ThreadClass(hz) {
     StartThread();
 }
 
@@ -69,7 +68,7 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
     if (cameras_.find(serial_number) != cameras_.end())
         return;
 
-    cameras_.emplace(serial_number, new RealSenseD400(dev, true, should_stabilise_exposure));
+    cameras_.emplace(serial_number, new RealSenseD400(dev));
 }
 
 const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {

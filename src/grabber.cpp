@@ -2,10 +2,12 @@
 
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp>
+#include <json.hpp>
 
 #include <Strawberry.hpp>
 #include <RealSenseD400.hpp>
 #include <MultiCamD400.hpp>
+#include <ConfigManager.hpp>
 
 void PrintHelp() {
     std::cout << "Controls: \n\t-save, s (Writes all output to disk)\n\t-laser0, l0 (Turns laser off)\n\t-laser1 <pa" <<
@@ -15,9 +17,12 @@ void PrintHelp() {
 }
 
 int main(int argc, char *argv[]) try {
+    // Set the singleton class up with the config file
+    ConfigManager::SetInstance("../config.json");
+
     // Initialise currently connected cameras and wait until ready
     // Set refresh rate to 20 Hz since frame rate is only 6
-    MultiCamD400 cameras(false, 20);
+    MultiCamD400 cameras(20);
     cameras.Available();
 
     // Print the system controls

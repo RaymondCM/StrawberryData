@@ -10,7 +10,7 @@
 
 class RealSenseD400 {
 public:
-    explicit RealSenseD400(rs2::device dev, bool gui, bool stabilise_exposure=false);
+    explicit RealSenseD400(rs2::device dev);
     ~RealSenseD400();
     void PrintDeviceInfo();
     void StabiliseExposure(int stabilization_window = 30);

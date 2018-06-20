@@ -1,14 +1,19 @@
 #include "Strawberry.hpp"
 
-Strawberry::DataStructure::DataStructure(const rs2::device &device) :
-        DataStructure(device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)) {}
+Strawberry::DataStructure::DataStructure(const rs2::device &device, std::string path_prefix) :
+        DataStructure(device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER), path_prefix) {}
 
-Strawberry::DataStructure::DataStructure(const char *device_serial_number) :
-        DataStructure(std::string(device_serial_number)) {}
+Strawberry::DataStructure::DataStructure(const char *device_serial_number, std::string path_prefix) :
+        DataStructure(std::string(device_serial_number), path_prefix) {}
 
-Strawberry::DataStructure::DataStructure(std::string device_serial_number) {
+Strawberry::DataStructure::DataStructure(std::string device_serial_number, std::string path_prefix) {
     serial_number_ = device_serial_number;
-    parent_ = boost::filesystem::path("data/" + serial_number_ + "/");
+    UpdatePathPrefix(path_prefix);
+}
+
+const void Strawberry::DataStructure::UpdatePathPrefix(std::string path_prefix) {
+    parent_ = boost::filesystem::path(path_prefix);
+    parent_ += boost::filesystem::path("data/" + serial_number_ + "/");
 }
 
 const void Strawberry::DataStructure::UpdateFolderPaths(bool stop_at_folder_depth) {

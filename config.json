@@ -1,0 +1,16 @@
+{
+    "save-path-prefix": "./",
+    "gui-enabled": true,
+    "stabilise-exposure": true,
+    "stabilise-exposure-count": 30,
+    "stream-colour": {
+        "frame-rate": 6,
+        "height": 1080,
+        "width": 1920
+    },
+    "stream-depth": {
+        "frame-rate": 6,
+        "height": 720,
+        "width": 1280
+    }
+}

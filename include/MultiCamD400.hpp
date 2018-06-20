@@ -7,7 +7,7 @@
 
 class MultiCamD400 : ThreadClass {
 public:
-    explicit MultiCamD400(bool wait_for_stabilise_exposure=false, unsigned int hz=60);
+    explicit MultiCamD400(unsigned int hz=60);
     const void AddDevice(rs2::device dev);
     const void RemoveDevice(const rs2::event_information& info);
     const void SaveFrames();
@@ -25,7 +25,7 @@ private:
     std::map<std::string, RealSenseD400*> cameras_;
     const void Setup() override;
     const void Loop() override;
-    bool should_stabilise_exposure, loop_paused_;
+    bool loop_paused_;
 
     // Flip guard to toggle between two values on scope/set default value
     template <typename T>
