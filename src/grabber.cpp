@@ -42,9 +42,9 @@ int main(int argc, char *argv[]) try {
         std::istringstream iss(line);
         std::vector<std::string> sym{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
 
-        // For each token
-        for (int i = 0; i < sym.size(); i++) {
-            std::string token = sym[i];
+        if(!sym.empty()) {
+            std::string token = sym[0];
+            std::string param = sym.size() > 1 ? sym[1] : "";
 
             // Check against available commands
             if (token == "laser0" || token == "l0") {
@@ -52,14 +52,16 @@ int main(int argc, char *argv[]) try {
             } else if (token == "laser1" || token == "l1") {
                 float power = -4;
                 // Get the next token and use it as a parameter for power
-                std::string param = i < sym.size() - 1 ? sym[i + 1] : "";
+
 
                 // Parse words to power levels
-                if (!param.empty())
-                    if (std::all_of(param.begin(), param.end(), ::isalpha))
+                if (!param.empty()) {
+                    if (std::all_of(param.begin(), param.end(), ::isalpha)) {
                         power = param == "min" ? -3 : param == "mid" ? -2 : param == "max" ? -1 : -4;
-                    else if (param.find_first_not_of(".0123456789") == std::string::npos)
+                    } else if (param.find_first_not_of(".0123456789") == std::string::npos) {
                         power = static_cast<float>(std::stod(param));
+                    }
+                }
 
                 cameras.SetLaser(true, power);
             } else if (token == "save" || token == "s") {
@@ -71,6 +73,8 @@ int main(int argc, char *argv[]) try {
             } else if(token == "quit" || token == "q") {
                 quit = true;
             }
+        } else {
+            cameras.SaveFrames();
         }
     } while (!quit);
 
