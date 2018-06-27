@@ -22,6 +22,8 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
     cfg.enable_stream(RS2_STREAM_INFRARED, 1, d_width, d_height, RS2_FORMAT_Y8, d_fps); // Left IR (Colour registered)
     cfg.enable_stream(RS2_STREAM_INFRARED, 2, d_width, d_height, RS2_FORMAT_Y8, d_fps); // Right IR
     cfg.enable_stream(RS2_STREAM_DEPTH, d_width, d_height, RS2_FORMAT_Z16, d_fps);
+
+    // Read in BGR so OpenCV automatically displays/saves it as RGB
     cfg.enable_stream(RS2_STREAM_COLOR, c_width, c_height, RS2_FORMAT_BGR8, c_fps);
     serial_number_ = std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
     cfg.enable_device(serial_number_);

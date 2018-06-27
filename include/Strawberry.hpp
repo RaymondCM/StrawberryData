@@ -28,7 +28,7 @@ namespace Strawberry {
         const void UpdateTimestamp();
         std::string serial_number_, date_, time_;
         const std::string video_frame_ext = ".png", point_cloud_ext = ".ply", metadata_ext = "_meta.csv";
-        const std::string depth_ = "depth_16UC1", coloured_depth_ =  "colourised_depth_8UC3", colour_ = "bgr_8UC3";
+        const std::string depth_ = "depth_16UC1", coloured_depth_ =  "colourised_depth_8UC3", colour_ = "rgb_8UC3";
         const std::string ir = "ir_8UC1", ir_left_ = "ir_left_8UC1", ir_right_ = "ir_right_8UC1", point_cloud_ =  "point_cloud";
         const std::string file_names_[7] = {depth_, coloured_depth_, colour_, ir, ir_left_, ir_right_, point_cloud_};
         const std::string ext_[3] = {video_frame_ext, point_cloud_ext, metadata_ext};
