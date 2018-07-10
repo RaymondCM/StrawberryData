@@ -70,7 +70,11 @@ const void MultiCamD400::AddDevice(rs2::device dev) {
     if (cameras_.find(serial_number) != cameras_.end())
         return;
 
-    cameras_.emplace(serial_number, new RealSenseD400(dev));
+    try {
+        cameras_.emplace(serial_number, new RealSenseD400(dev));
+    } catch (rs2::error &e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 const void MultiCamD400::RemoveDevice(const rs2::event_information &info) {

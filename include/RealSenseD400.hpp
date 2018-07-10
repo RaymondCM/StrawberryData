@@ -3,6 +3,7 @@
 
 #include <string>
 #include <librealsense2/rs.hpp>
+#include <librealsense2/rs_advanced_mode.hpp>
 #include <opencv2/opencv.hpp>
 
 #include "ThreadClass.hpp"
@@ -22,6 +23,7 @@ public:
 private:
     // Device
     rs2::device dev_;
+    rs400::advanced_mode advanced_dev_;
 
     rs2::depth_sensor depth_sensor_;
     float depth_sensor_scale_;
@@ -65,6 +67,7 @@ private:
     void WriteVideoFrameMetaData(const std::string &file_name, rs2::video_frame &frame);
     bool WindowsAreOpen();
     void Visualise();
+    bool DeviceInAdvancedMode();
 
     const void Setup();
 

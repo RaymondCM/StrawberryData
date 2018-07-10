@@ -5,7 +5,19 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
                                                 depth_(nullptr), colour_(nullptr),
                                                 lir_(nullptr),
                                                 rir_(nullptr), c_depth_(nullptr),
-                                                data_structure_(dev) {
+                                                data_structure_(dev),
+                                                advanced_dev_(dev){
+    // Check device is in advanced mode before trying to enable all streams
+    // Will cause a could not enable all streams error
+    if(!DeviceInAdvancedMode()) {
+        std::cout << "Device " << serial_number_ << ": Not in advanced mode, enabling advanced mode" << std::endl;
+        //advanced_dev_ = dev.as<rs400::advanced_mode>();
+        advanced_dev_.toggle_advanced_mode(true);
+
+        //TODO: Change workflow so that it will reconnect in order to the camera with the same serial
+        throw rs2::error("Device advanced mode enabled, device will disconnect and reconnect");
+    }
+    
     // Print the device information
     PrintDeviceInfo();
 
@@ -72,6 +84,15 @@ void RealSenseD400::PrintDeviceInfo() {
 
         std::cout << "\t" << output << std::endl;
     }
+}
+
+bool RealSenseD400::DeviceInAdvancedMode() {
+    //    if(dev_.supports(RS2_CAMERA_INFO_ADVANCED_MODE)) {
+    //        return dev_.get_info(RS2_CAMERA_INFO_ADVANCED_MODE) == "YES";
+    //    }
+    //
+    //    return false;
+    return advanced_dev_.is_enabled();
 }
 
 bool RealSenseD400::WindowsAreOpen() {
