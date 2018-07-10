@@ -1,4 +1,5 @@
 #include <iostream>
+#include <functional>
 #include "ThreadClass.hpp"
 
 ThreadClass::ThreadClass(unsigned int hz) : refresh_rate_(hz), ms_timeout_(1000 / hz) {
