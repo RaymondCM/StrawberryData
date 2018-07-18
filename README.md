@@ -1,6 +1,6 @@
 # Strawberry Data
 
-Data collection suite for strawberry data collection project.
+Data collection suite for strawberry data collection project. The standards document and example implementation can be found [here](Strawberry_Data_Collection.pdf).
 
 ## Controls 
 
