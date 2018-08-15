@@ -28,12 +28,14 @@ private:
     bool loop_paused_;
 
     // Flip guard to toggle between two values on scope/set default value
+    //  Example set value to true flip_guard<bool>(&value, true) until it goes out of scope and then set to false
+    //  Resets value to start value at the end (if value of v and s are the same this does nothing) unless e is defined
     template <typename T>
     class flip_guard {
         T * f, fs, fe;
     public:
         flip_guard(T *v) {f = v; fs = *v;}
-        flip_guard(T *v, T s) : flip_guard(v) {fs = s; fe = !s; *f = fs;}
+        flip_guard(T *v, T s) : flip_guard(v) {fs = s; fe = *v == s == s; *f = fs;}
         flip_guard(T *v, T s, T e) : flip_guard(v, s) {fe = e;}
         ~flip_guard() {*f = fe;}
     };

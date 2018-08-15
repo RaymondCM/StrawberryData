@@ -1,3 +1,4 @@
+#include <ConfigManager.hpp>
 #include "MultiCamD400.hpp"
 
 MultiCamD400::MultiCamD400(unsigned int hz) : ThreadClass(hz) {
@@ -30,6 +31,8 @@ const void MultiCamD400::Setup() {
         AddDevice(cam);
 
     initialised = true;
+
+    loop_paused_ = !ConfigManager::IGet("gui-enabled");
 
     while (ThreadAlive()) {
         try {
