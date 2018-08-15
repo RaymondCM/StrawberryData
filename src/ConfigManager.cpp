@@ -61,14 +61,3 @@ nlohmann::json ConfigManager::Get(const std::string &key) {
 nlohmann::json ConfigManager::IGet(const std::string &key) {
     return GetInstance()->Get(key);
 }
-
-template<typename T>
-void ConfigManager::ISet(const std::string &key, T value) {
-    GetInstance()->Set(key, value);
-}
-
-template<typename T>
-void ConfigManager::Set(const std::string &key, T value) {
-    std::lock_guard<std::mutex> lock(singleton_lock_);
-    config[key] = value;
-}
