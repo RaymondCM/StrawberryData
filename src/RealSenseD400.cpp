@@ -70,8 +70,11 @@ void RealSenseD400::ConfigureDataset(std::string data_name, std::string data_roo
     if(data_name.empty())
         data_name = ConfigManager::IGet("project-name");
 
+    //Update folder structure and create necessary folders
     data_structure_.UpdatePathPrefix(data_root, data_name);
     data_structure_.SetFileConstructionNames();
+    data_structure_.UpdateFolderPaths(true);
+    WriteDeviceData(data_structure_.folder_.string() + serial_number_ + "_meta.csv");
 }
 
 void RealSenseD400::StabiliseExposure(int stabilization_window) {
@@ -207,10 +210,6 @@ const void RealSenseD400::Setup() {
         //cv::namedWindow(win_ir_, cv::WINDOW_GUI_EXPANDED | CV_WINDOW_NORMAL | CV_GUI_NORMAL);
         //cv::namedWindow(win_depth_, cv::WINDOW_GUI_EXPANDED | CV_WINDOW_NORMAL | CV_GUI_NORMAL);
     }
-
-    //Update folder structure and create necessary folders
-    data_structure_.UpdateFolderPaths(true);
-    WriteDeviceData(data_structure_.folder_.string() + serial_number_ + "_meta.csv");
 }
 
 const void RealSenseD400::WaitForFrames() {
