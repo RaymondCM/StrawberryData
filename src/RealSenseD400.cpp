@@ -53,8 +53,7 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
         StabiliseExposure(config->Get("stabilise-exposure-count"));
 
     // Update save path
-    data_structure_.UpdatePathPrefix(config->Get("save-path-prefix"));
-    data_structure_.SetFileConstructionNames(); //Use default config manager to set the names
+    ConfigureDataset();
 
     Setup();
 }
@@ -62,6 +61,17 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
 RealSenseD400::~RealSenseD400() {
     CloseGUI();
     pipe_.stop();
+}
+
+void RealSenseD400::ConfigureDataset(std::string data_name, std::string data_root) {
+    // If no parameters passed use the global defaults
+    if(data_root.empty())
+        data_root = ConfigManager::IGet("save-path-prefix");
+    if(data_name.empty())
+        data_name = ConfigManager::IGet("project-name");
+
+    data_structure_.UpdatePathPrefix(data_root, data_name);
+    data_structure_.SetFileConstructionNames();
 }
 
 void RealSenseD400::StabiliseExposure(int stabilization_window) {

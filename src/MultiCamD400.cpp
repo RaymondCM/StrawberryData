@@ -1,4 +1,3 @@
-#include <ConfigManager.hpp>
 #include "MultiCamD400.hpp"
 
 MultiCamD400::MultiCamD400(unsigned int hz) : ThreadClass(hz) {
@@ -98,10 +97,8 @@ const void MultiCamD400::SaveFrames() {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     std::vector<std::thread> threads;
     for (auto &&cam : cameras_)
@@ -113,10 +110,8 @@ const void MultiCamD400::SaveFrames(int index) {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     int i = 0;
     for (auto &&cam : cameras_)
@@ -128,10 +123,8 @@ const void MultiCamD400::SetLaser(bool laser, float power) {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     for (auto &&cam : cameras_)
         cam.second->SetLaser(laser, power);
@@ -141,10 +134,8 @@ const void MultiCamD400::SetLaser(int index, bool laser, float power) {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     int i = 0;
     for (auto &&cam : cameras_)
@@ -160,10 +151,8 @@ const void MultiCamD400::StabiliseExposure() {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     std::vector<std::thread> threads;
     for (auto &&cam : cameras_)
@@ -175,15 +164,40 @@ const void MultiCamD400::StabiliseExposure(int index) {
     flip_guard<bool> pause(&loop_paused_, true);
     std::lock_guard<std::mutex> lock(lock_mutex_);
 
-    if(cameras_.empty()) {
-        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+    if(!CamerasAvailable())
         return;
-    }
 
     int i = 0;
     for (auto &&cam : cameras_)
         if (index == i++)
             cam.second->StabiliseExposure();
+}
+
+const void MultiCamD400::UpdateDataConfiguration() {
+    flip_guard<bool> pause(&loop_paused_, true);
+    std::lock_guard<std::mutex> lock(lock_mutex_);
+
+    if(!CamerasAvailable())
+        return;
+
+    for (auto &&cam : cameras_)
+        cam.second->ConfigureDataset();
+}
+
+const void MultiCamD400::UpdateDataConfiguration(std::string data_name, std::string data_root) {
+    ConfigManager *config = ConfigManager::GetInstance();
+    config->Set("save-path-prefix", data_root);
+    config->Set("project-name", data_name);
+    UpdateDataConfiguration();
+}
+
+const bool MultiCamD400::CamerasAvailable() {
+    if(cameras_.empty()) {
+        std::cerr << "No devices connected, restart application or verify with 'lsusb'" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 const void MultiCamD400::Pause(bool pause) {

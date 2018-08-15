@@ -14,9 +14,12 @@ Strawberry::DataStructure::DataStructure(std::string device_serial_number, std::
     UpdatePathPrefix(path_prefix);
 }
 
-const void Strawberry::DataStructure::UpdatePathPrefix(std::string path_prefix) {
+const void Strawberry::DataStructure::UpdatePathPrefix(std::string path_prefix, std::string data_name) {
+    if(!data_name.empty())
+        data_set_name_ = data_name;
+
     parent_ = boost::filesystem::path(path_prefix);
-    parent_ += boost::filesystem::path("data/" + serial_number_ + "/");
+    parent_ += boost::filesystem::path(data_set_name_ + "/" + serial_number_ + "/");
 }
 
 const void Strawberry::DataStructure::UpdateFolderPaths(bool stop_at_folder_depth) {

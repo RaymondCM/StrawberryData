@@ -20,6 +20,7 @@ public:
     const void WaitForFrames();
     rs2::pipeline_profile GetProfile();
     void CloseGUI();
+    void ConfigureDataset(std::string data_name = "", std::string data_root = "");
 private:
     // Device
     rs2::device dev_;

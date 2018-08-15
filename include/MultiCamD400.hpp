@@ -1,9 +1,10 @@
 #ifndef STRAWBERRYDATA_MULTICAMD400_H
 #define STRAWBERRYDATA_MULTICAMD400_H
 
+#include <librealsense2/rs.hpp>
 #include "ThreadClass.hpp"
 #include "RealSenseD400.hpp"
-#include <librealsense2/rs.hpp>
+#include "ConfigManager.hpp"
 
 class MultiCamD400 : ThreadClass {
 public:
@@ -16,6 +17,9 @@ public:
     const void SetLaser(int index, bool laser, float power=-4);
     const void StabiliseExposure();
     const void StabiliseExposure(int index);
+    const void UpdateDataConfiguration();
+    const void UpdateDataConfiguration(std::string data_name, std::string data_root);
+    const bool CamerasAvailable();
     const void Pause(bool pause=true);
 
     // Utility function for calling methods

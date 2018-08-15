@@ -20,7 +20,7 @@ namespace Strawberry {
         explicit DataStructure(const char * device_serial_number, std::string path_prefix = "./");
         explicit DataStructure(std::string device_serial_number, std::string path_prefix = "./");
 
-        const void UpdatePathPrefix(std::string path_prefix);
+        const void UpdatePathPrefix(std::string path_prefix, std::string data_name = "");
         const void UpdateFolderPaths(bool stop_at_folder_depth = false);
         const std::string FilePath(RsType file_type, bool meta = false);
 
@@ -29,6 +29,7 @@ namespace Strawberry {
         boost::filesystem::path parent_, folder_, sub_folder_;
     private:
         const void UpdateTimestamp();
+        std::string data_set_name_ = "data";
         std::string serial_number_, date_, time_;
         std::string video_frame_ext = ".png", point_cloud_ext = ".ply", metadata_ext = "_meta.csv";
         std::string depth_ = "depth_16UC1", coloured_depth_ =  "colourised_depth_8UC3", colour_ = "rgb_8UC3";

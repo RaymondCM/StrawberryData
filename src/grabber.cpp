@@ -12,8 +12,8 @@
 void PrintHelp() {
     std::cout << "Controls: \n\t-save, s (Writes all output to disk)\n\t-laser0, l0 (Turns laser off)\n\t-laser1 <pa" <<
               "ram>, l1 <param> (Turns laser on)\n\t\t-<param> can be min(-3), mid(-2), max(-1) or any float value" <<
-              "\n\t-stab, st (Throws away frames for correcting exposure)" << "\n\t-help, h (Displays help)" <<
-              "\n\t-quit, q (Quits)" << std::endl;
+              "\n\t-stab, st (Throws away frames for correcting exposure)" << "\n\t-new, n (Creates new dataset)" <<
+              "\n\t-help, h (Displays help)" << "\n\t-quit, q (Quits)" << std::endl;
 }
 
 int main(int argc, char *argv[]) try {
@@ -47,7 +47,27 @@ int main(int argc, char *argv[]) try {
             std::string param = sym.size() > 1 ? sym[1] : "";
 
             // Check against available commands
-            if (token == "laser0" || token == "l0") {
+            if(token == "new" || token == "n") {
+                std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+                std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(ms).count();
+
+                std::stringstream project_name_buf;
+                project_name_buf <<  std::put_time(std::localtime(&t), "data-%Y_%m_%d-%H:%M:%S");
+                std::string project_name = project_name_buf.str(), temp, project_root = ConfigManager::IGet("save-path-prefix");
+
+                std::cout << "Creating new dataset:" << std::endl;
+                std::cout << "\tEnter Project Name (Enter for default '" << project_name << "'): ";
+                getline(std::cin, temp);
+                if(!temp.empty())
+                    project_name = temp;
+                std::cout << "\tEnter Project Root (Enter for default '" << project_root << "'): ";
+                getline(std::cin, temp);
+                if(!temp.empty())
+                    project_root = temp;
+                std::cout << std::endl;
+                cameras.UpdateDataConfiguration(project_name, project_root);
+            } else if (token == "laser0" || token == "l0") {
                 cameras.SetLaser(false);
             } else if (token == "laser1" || token == "l1") {
                 float power = -4;
