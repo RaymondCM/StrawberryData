@@ -15,6 +15,10 @@ public:
     ConfigManager& operator=(ConfigManager const&) = delete;
     static nlohmann::json IGet(const std::string& key);
     nlohmann::json Get(const std::string& key);
+    template <typename T>
+    static void ISet(const std::string& key, T value);
+    template <typename T>
+    void Set(const std::string& key, T value);
     const void Print(int spaces = 2);
 private:
     ConfigManager();
