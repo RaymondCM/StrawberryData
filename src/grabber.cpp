@@ -1,4 +1,5 @@
 #include <string>
+#include <algorithm>
 
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp>
@@ -14,6 +15,80 @@ void PrintHelp() {
               "ram>, l1 <param> (Turns laser on)\n\t\t-<param> can be min(-3), mid(-2), max(-1) or any float value" <<
               "\n\t-stab, st (Throws away frames for correcting exposure)" << "\n\t-new, n (Creates new dataset)" <<
               "\n\t-help, h (Displays help)" << "\n\t-quit, q (Quits)" << std::endl;
+}
+
+std::string GetInput(std::string message = "") {
+    if(!message.empty())
+        std::cout << message;
+    std::string output;
+    getline(std::cin, output);
+    return output;
+}
+
+std::string GetDefaultInput(std::string message = "", std::string default_input = "") {
+    std::string output = GetInput(message);
+    return output.empty() ? default_input : output;
+}
+
+bool GetYesOrNo() {
+    std::string yesno_input;
+    getline(std::cin, yesno_input);
+    std::transform(yesno_input.begin(), yesno_input.end(), yesno_input.begin(), ::tolower);
+    if(yesno_input.empty() || yesno_input == "y" || yesno_input == "yes")
+        return true;
+    return false;
+}
+
+void NewDataset(std::string &project_root, std::string &project_name) {
+    std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+    std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(ms).count();
+
+    std::stringstream project_name_buf;
+    project_name_buf <<  std::put_time(std::localtime(&t), "data-%Y_%m_%d-%H:%M:%S");
+
+    project_name = project_name_buf.str(), project_root = ConfigManager::IGet("save-path-prefix");
+
+    std::cout << "Creating new dataset:" << std::endl;
+
+    project_root = GetDefaultInput("\tEnter Project Root (Enter for default '" + project_root + "'): ",
+                                   project_root);
+
+    if(project_root[project_root.length()] != '\\' || project_root[project_root.length()] != '/') {
+        std::cout << "\tDid you mean '" << project_root << "/' instead of '" << project_root << "' (y/n): ";
+        if(GetYesOrNo())
+            project_root += "/";
+    }
+
+    project_name = GetDefaultInput("\tEnter Project Name (Enter for default '" + project_name + "'): ",
+                                   project_name);
+
+    std::cout << "\tWould you like to create meta-data? GPS, weather conditions, notes etc. (y/n): ";
+    if(GetYesOrNo()) {
+        // If folder doesn't exist for new data set create it
+        boost::filesystem::path folder(project_root + project_name + "/");
+        if(!boost::filesystem::is_directory(folder) || !boost::filesystem::exists(folder))
+            boost::filesystem::create_directories(folder);
+
+        std::ofstream csv;
+        csv.open(folder.string() + "capture_meta.csv");
+        //TODO: Auto fill these from https://openweathermap.org/
+        csv << "Name (First Last)" << ',' << GetInput("\tName (First Last): ") << '\n';
+        csv << "Contact Email" << ',' << GetInput("\tContact Email: ") << '\n';
+        csv << "Date (DD/MM/YYYY)" << ',' << GetInput("\tDate (DD/MM/YYYY): ") << '\n';
+        csv << "Latitude" << ',' << GetInput("\tLatitude: ") << '\n';
+        csv << "Longitude" << ',' << GetInput("\tLongitude: ") << '\n';
+        csv << "Location Name" << ',' << GetInput("\tLocation Name: ") << '\n';
+        csv << "Location Row ID" << ',' << GetInput("\tLocation Row ID (if known): ") << '\n';
+        csv << "Temperature (Celsius)" << ',' << GetInput("\tTemperature (Celsius): ") << '\n';
+        csv << "Humidity (%)" << ',' << GetInput("\tHumidity (%): ") << '\n';
+        csv << "Conditions (Description)" << ',' << GetInput("\tConditions (Description): ") << '\n';
+        csv << "Crop Species" << ',' << GetInput("\tCrop Species (if known): ") << '\n';
+        csv << "Notes" << ',' << GetInput("\tNotes: ") << '\n';
+        csv.close();
+    }
+
+    std::cout << std::endl;
 }
 
 int main(int argc, char *argv[]) try {
@@ -44,36 +119,19 @@ int main(int argc, char *argv[]) try {
 
         if(!sym.empty()) {
             std::string token = sym[0];
+
+            // Get the next token and use it as a parameter
             std::string param = sym.size() > 1 ? sym[1] : "";
 
             // Check against available commands
             if(token == "new" || token == "n") {
-                std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
-                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
-                std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(ms).count();
-
-                std::stringstream project_name_buf;
-                project_name_buf <<  std::put_time(std::localtime(&t), "data-%Y_%m_%d-%H:%M:%S");
-                std::string project_name = project_name_buf.str(), temp, project_root = ConfigManager::IGet("save-path-prefix");
-
-                std::cout << "Creating new dataset:" << std::endl;
-                std::cout << "\tEnter Project Name (Enter for default '" << project_name << "'): ";
-                getline(std::cin, temp);
-                if(!temp.empty())
-                    project_name = temp;
-                std::cout << "\tEnter Project Root (Enter for default '" << project_root << "'): ";
-                getline(std::cin, temp);
-                if(!temp.empty())
-                    project_root = temp;
-                std::cout << std::endl;
+                std::string project_root, project_name;
+                NewDataset(project_root, project_name);
                 cameras.UpdateDataConfiguration(project_name, project_root);
             } else if (token == "laser0" || token == "l0") {
                 cameras.SetLaser(false);
             } else if (token == "laser1" || token == "l1") {
                 float power = -4;
-                // Get the next token and use it as a parameter for power
-
-
                 // Parse words to power levels
                 if (!param.empty()) {
                     if (std::all_of(param.begin(), param.end(), ::isalpha)) {
