@@ -1,3 +1,6 @@
+
+#include <Strawberry.hpp>
+
 #include "Strawberry.hpp"
 
 Strawberry::DataStructure::DataStructure(const rs2::device &device, std::string path_prefix) :
@@ -47,4 +50,33 @@ const void Strawberry::DataStructure::UpdateTimestamp() {
     time << std::put_time(std::localtime(&t), "%H_%M_%S_") << std::setfill('0') << std::setw(3) << ms.count() % 1000;
     date_ = date.str();
     time_ = time.str();
+}
+
+const void Strawberry::DataStructure::SetFileConstructionNames(ConfigManager *config) {
+    if(config == nullptr)
+        config = ConfigManager::GetInstance();
+    nlohmann::json file_names = config->Get("file-names");
+
+    video_frame_ext = file_names["video_frame_ext"];
+    point_cloud_ext = file_names["point_cloud_ext"];
+    metadata_ext = file_names["metadata_ext"];
+    depth_ = file_names["depth"];
+    coloured_depth_ = file_names["coloured_depth"];
+    colour_ = file_names["colour"];
+    ir = file_names["ir"];
+    ir_left_ = file_names["ir_left"];
+    ir_right_ = file_names["ir_right"];
+    point_cloud_ = file_names["point_cloud"];
+
+    file_names_[0] = depth_;
+    file_names_[1] = coloured_depth_;
+    file_names_[2] = colour_;
+    file_names_[3] = ir;
+    file_names_[4] = ir_left_;
+    file_names_[5] = ir_right_;
+    file_names_[6] = point_cloud_;
+
+    ext_[0] = video_frame_ext;
+    ext_[1] = point_cloud_ext;
+    ext_[2] = metadata_ext;
 }

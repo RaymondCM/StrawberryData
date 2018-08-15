@@ -54,6 +54,7 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
 
     // Update save path
     data_structure_.UpdatePathPrefix(config->Get("save-path-prefix"));
+    data_structure_.SetFileConstructionNames(); //Use default config manager to set the names
 
     Setup();
 }

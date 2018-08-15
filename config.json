@@ -1,8 +1,8 @@
 {
-    "save-path-prefix": "./",
-    "gui-enabled": true,
+    "save-path-prefix": "/media/raymond/TRANSCEND/Strawberry Data Riseholme/",
+    "gui-enabled": false,
     "stabilise-exposure": true,
-    "stabilise-exposure-count": 30,
+    "stabilise-exposure-count": 6,
     "stream-colour": {
         "frame-rate": 6,
         "height": 1080,
@@ -12,5 +12,20 @@
         "frame-rate": 6,
         "height": 720,
         "width": 1280
+    },
+    "file-names": {
+        "video_frame_ext": ".png",
+        "point_cloud_ext": ".ply",
+        "metadata_ext": "_meta.csv",
+        "depth": "depth_16UC1",
+        "coloured_depth": "colourised_depth_8UC3",
+        "colour": "rgb_8UC3",
+        "ir": "ir_8UC1",
+        "ir_left": "ir_left_8UC1",
+        "ir_right": "ir_right_8UC1",
+        "point_cloud":  "point_cloud"
     }
 }
+
+
+
