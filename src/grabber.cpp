@@ -80,6 +80,7 @@ void NewDataset(std::string &project_root, std::string &project_name) {
         csv << "Longitude" << ',' << GetInput("\tLongitude: ") << '\n';
         csv << "Location Name" << ',' << GetInput("\tLocation Name: ") << '\n';
         csv << "Location Row ID" << ',' << GetInput("\tLocation Row ID (if known): ") << '\n';
+        csv << "Capture Distance from Row (cm)" << ',' << GetInput("\tCapture Distance from Row (cm): ") << '\n';
         csv << "Temperature (Celsius)" << ',' << GetInput("\tTemperature (Celsius): ") << '\n';
         csv << "Humidity (%)" << ',' << GetInput("\tHumidity (%): ") << '\n';
         csv << "Conditions (Description)" << ',' << GetInput("\tConditions (Description): ") << '\n';
