@@ -54,7 +54,7 @@ void NewDataset(std::string &project_root, std::string &project_name) {
     project_root = GetDefaultInput("\tEnter Project Root (Enter for default '" + project_root + "'): ",
                                    project_root);
 
-    if(project_root[project_root.length()] != '\\' || project_root[project_root.length()] != '/') {
+    if(!project_root.empty() && (project_root[project_root.length()] != '\\' || project_root[project_root.length()] != '/')) {
         std::cout << "\tDid you mean '" << project_root << "/' instead of '" << project_root << "' (y/n): ";
         if(GetYesOrNo())
             project_root += "/";
@@ -63,13 +63,13 @@ void NewDataset(std::string &project_root, std::string &project_name) {
     project_name = GetDefaultInput("\tEnter Project Name (Enter for default '" + project_name + "'): ",
                                    project_name);
 
+    // If folder doesn't exist for new data set create it
+    boost::filesystem::path folder(project_root + project_name + "/");
+    if(!boost::filesystem::is_directory(folder) || !boost::filesystem::exists(folder))
+        boost::filesystem::create_directories(folder);
+
     std::cout << "\tWould you like to create meta-data? GPS, weather conditions, notes etc. (y/n): ";
     if(GetYesOrNo()) {
-        // If folder doesn't exist for new data set create it
-        boost::filesystem::path folder(project_root + project_name + "/");
-        if(!boost::filesystem::is_directory(folder) || !boost::filesystem::exists(folder))
-            boost::filesystem::create_directories(folder);
-
         std::ofstream csv;
         csv.open(folder.string() + "capture_meta.csv");
         //TODO: Auto fill these from https://openweathermap.org/
