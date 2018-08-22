@@ -54,7 +54,7 @@ void NewDataset(std::string &project_root, std::string &project_name) {
     project_root = GetDefaultInput("\tEnter Project Root (Enter for default '" + project_root + "'): ",
                                    project_root);
 
-    if(!project_root.empty() && (project_root[project_root.length()] != '\\' || project_root[project_root.length()] != '/')) {
+    if(!project_root.empty() && project_root[project_root.length()] != '\\' && project_root[project_root.length()] != '/') {
         std::cout << "\tDid you mean '" << project_root << "/' instead of '" << project_root << "' (y/n): ";
         if(GetYesOrNo())
             project_root += "/";
@@ -68,7 +68,7 @@ void NewDataset(std::string &project_root, std::string &project_name) {
     if(!boost::filesystem::is_directory(folder) || !boost::filesystem::exists(folder))
         boost::filesystem::create_directories(folder);
 
-    std::cout << "\tWould you like to create meta-data? GPS, weather conditions, notes etc. (y/n): ";
+    std::cout << "\tWould you like to create meta-data? GPS, crop distance, notes etc. (y/n): ";
     if(GetYesOrNo()) {
         std::ofstream csv;
         csv.open(folder.string() + "capture_meta.csv");
@@ -81,15 +81,14 @@ void NewDataset(std::string &project_root, std::string &project_name) {
         csv << "Location Name" << ',' << GetInput("\tLocation Name: ") << '\n';
         csv << "Location Row ID" << ',' << GetInput("\tLocation Row ID (if known): ") << '\n';
         csv << "Capture Distance from Row (cm)" << ',' << GetInput("\tCapture Distance from Row (cm): ") << '\n';
-        csv << "Temperature (Celsius)" << ',' << GetInput("\tTemperature (Celsius): ") << '\n';
-        csv << "Humidity (%)" << ',' << GetInput("\tHumidity (%): ") << '\n';
-        csv << "Conditions (Description)" << ',' << GetInput("\tConditions (Description): ") << '\n';
         csv << "Crop Species" << ',' << GetInput("\tCrop Species (if known): ") << '\n';
         csv << "Notes" << ',' << GetInput("\tNotes: ") << '\n';
         csv.close();
     }
 
     std::cout << std::endl;
+    std::cout << "Please use the'get_weather.py' python script and manually append weather data to the meta file"
+    << std::endl;
 }
 
 int main(int argc, char *argv[]) try {
