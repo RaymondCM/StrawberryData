@@ -40,6 +40,9 @@ RealSenseD400::RealSenseD400(rs2::device dev) : dev_(dev), depth_sensor_(dev.fir
     serial_number_ = std::string(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
     cfg.enable_device(serial_number_);
 
+    // Set sensor options
+    SetSensorOptions();
+
     // Define pipeline with parameters above
     selection = pipe_.start(cfg);
 
@@ -107,6 +110,39 @@ bool RealSenseD400::DeviceInAdvancedMode() {
     //
     //    return false;
     return advanced_dev_.is_enabled();
+}
+
+void RealSenseD400::SetSensorOptions() {
+    // Get resolution etc from config file
+    ConfigManager *config = ConfigManager::GetInstance();
+    nlohmann::json options = config->Get("options");
+    bool auto_exposure_opt =  options["auto-exposure"];
+    bool back_light_compensation_opt =  options["back-light-compensation"];
+    bool auto_white_balance_opt =  options["auto-white-balance"];
+
+    std::cout << "Setting Device Sensor Parameters:" << std::endl;
+
+    //Find any sensors that support the options above
+    std::vector<rs2::sensor> sensors = dev_.query_sensors();
+    for(auto &sensor : sensors) {
+        auto sensor_name = sensor.get_info(RS2_CAMERA_INFO_NAME);
+        if (sensor.supports(RS2_OPTION_BACKLIGHT_COMPENSATION)) {
+            std::cout << "\tSet back light compensation to " << back_light_compensation_opt << " for " << sensor_name <<
+                std::endl;
+            sensor.set_option(RS2_OPTION_BACKLIGHT_COMPENSATION, back_light_compensation_opt);
+        }
+
+        if (sensor.supports(RS2_OPTION_ENABLE_AUTO_EXPOSURE)) {
+            std::cout << "\tSet enable auto exposure to " << auto_exposure_opt << " for " << sensor_name << std::endl;
+            sensor.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, auto_exposure_opt);
+        }
+
+        if (sensor.supports(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE)) {
+            std::cout << "\tSet enable auto white balance to " << auto_white_balance_opt << " for " << sensor_name <<
+                std::endl;
+            sensor.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, auto_white_balance_opt);
+        }
+    }
 }
 
 bool RealSenseD400::WindowsAreOpen() {

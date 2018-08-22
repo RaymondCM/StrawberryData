@@ -1,8 +1,8 @@
 {
     "save-path-prefix": "",
     "project-name": "data",
-    "gui-enabled": false,
-    "stabilise-exposure": true,
+    "gui-enabled": true,
+    "stabilise-exposure": false,
     "stabilise-exposure-count": 6,
     "stream-colour": {
         "frame-rate": 6,
@@ -13,6 +13,11 @@
         "frame-rate": 6,
         "height": 720,
         "width": 1280
+    },
+    "options": {
+        "auto-exposure": true,
+        "back-light-compensation": true,
+        "auto-white-balance": true
     },
     "file-names": {
         "video_frame_ext": ".png",

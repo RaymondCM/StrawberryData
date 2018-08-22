@@ -69,6 +69,7 @@ private:
     bool WindowsAreOpen();
     void Visualise();
     bool DeviceInAdvancedMode();
+    void SetSensorOptions();
 
     const void Setup();
 

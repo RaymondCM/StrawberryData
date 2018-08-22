@@ -31,7 +31,12 @@ Parameters are stored in the [`config.json`](config.json) file.
 | `width` | Sensor resolution width |
 | `height` | Sensor resolution height |
 | `frame-rate` | Sensor resolution frame rate |
+| `options` | Parent property that houses global sensor parameters (see `auto-exposure`, `back-light-compensation` and `auto-white-balance`) |
+| `auto-exposure` | Determines weather the sensor will determine exposure parameters using an internal algorithm |
+| `back-light-compensation` | This setting when on will compensate for very bright backgrounds to ensure more uniform lighting |
+| `auto-white-balance` | Determines weather the sensor can dynamically  calculate the white balance parameters |
 | `file-names` | Contains all of the file names and extensions for multiple types (See for reference) |
+
 
 ## Example Usage
 

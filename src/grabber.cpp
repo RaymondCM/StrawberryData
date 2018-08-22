@@ -87,8 +87,7 @@ void NewDataset(std::string &project_root, std::string &project_name) {
     }
 
     std::cout << std::endl;
-    std::cout << "Please use the'get_weather.py' python script and manually append weather data to the meta file"
-    << std::endl;
+    std::cout << "Use the 'get_weather.py' script and manually append the weather data to the meta file." << std::endl;
 }
 
 int main(int argc, char *argv[]) try {
