@@ -265,7 +265,7 @@ const void RealSenseD400::WaitForFrames() {
             colour_ = frames_.get_color_frame();
             lir_ = frames_.get_infrared_frame(1);
             rir_ = frames_.get_infrared_frame(2);
-            c_depth_ = color_map(depth_);
+            c_depth_ = color_map.process(depth_);
 
             // Map to depth_ frame
             pc_.map_to(depth_);
