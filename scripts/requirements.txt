@@ -1,0 +1,15 @@
+certifi==2018.8.24
+chardet==3.0.4
+geojson==2.3.0
+idna==2.7
+pbr==4.3.0
+pkg-resources==0.0.0
+pyowm==2.9.0
+requests==2.19.1
+six==1.11.0
+stevedore==1.29.0
+tqdm==4.26.0
+urllib3==1.23
+virtualenv==16.0.0
+virtualenv-clone==0.3.0
+virtualenvwrapper==4.8.2
