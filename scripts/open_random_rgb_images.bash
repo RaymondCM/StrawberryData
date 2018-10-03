@@ -4,7 +4,7 @@
 cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 #Change to data root directory
-cd ..
+cd ../data
 
 echo -n "Enter number of random RGB files to open: "
 read user_input

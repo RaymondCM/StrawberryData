@@ -4,7 +4,7 @@
 cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 #Change to data root directory
-cd ..
+cd ../data
 
 d_count=$(find . -iname "depth_16UC1.png" | wc -l)
 cd_count=$(find . -iname "colourised_depth_8UC3.png" | wc -l)
