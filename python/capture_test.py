@@ -138,6 +138,17 @@ while(1):
 	colorized_depth = np.asanyarray(colorizer.colorize(filtered_depth).get_data())
 	infrared = np.expand_dims(np.asanyarray(aligned_infrared_frame.get_data()),2)
 	infrared = np.concatenate( (infrared,infrared,infrared),2)
+	
+	##set roi area around the darkest infrared value
+	index_min = np.unravel_index(np.argmin(infrared[:,:,0]), infrared.shape)
+	roi_sensor = profile.get_device().query_sensors()[0].as_roi_sensor()
+	sensor_roi = roi_sensor.get_region_of_interest()
+	sensor_roi.min_x, sensor_roi.max_x = int(index_min[1]),int( index_min[1] + 1) if index_min[1] +1 < infrared.shape[1] else int(infrared.shape[1]-1)
+	sensor_roi.min_y, sensor_roi.max_y = int(index_min[0]), int( index_min[0] + 1) if index_min[0] +1 <infrared.shape[0] else int(infrared.shape[0]-1)
+	roi_sensor.set_region_of_interest(sensor_roi)
+	sensor_roi = roi_sensor.get_region_of_interest()
+
+
 	#print(infrared.shape,color.shape,np.asanyarray(aligned_depth_frame.get_data()).astype(np.float).shape)
 	images = np.hstack((color, colorized_depth,infrared))
 	cv2.imshow("depth and rgb",images)
