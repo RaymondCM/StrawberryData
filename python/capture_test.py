@@ -137,7 +137,7 @@ def capture(win):
 		colorizer = rs.colorizer()
 		align = rs.align(rs.stream.color)
 		frameset = align.process(frameset)
-		#print("exposure value from meta",depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure))
+		print("exposure value from meta",depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure))
 
 		aligned_depth_frame = frameset.get_depth_frame()
 		aligned_infrared_frame = frameset.get_infrared_frame(1)
