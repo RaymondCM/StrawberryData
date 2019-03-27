@@ -124,7 +124,7 @@ def capture(win):
 	key=""
 	win.clear()                
 	win.addstr("Detected key:")
-
+	count = 0
 	while(1):
 	#	print(depth_sensor.get_option(rs.option.exposure))
 		frameset = pipeline_1.wait_for_frames()
@@ -137,7 +137,15 @@ def capture(win):
 		colorizer = rs.colorizer()
 		align = rs.align(rs.stream.color)
 		frameset = align.process(frameset)
-		print("exposure value from meta",depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure))
+		exposure_auto = depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure)
+		print("exposure value from meta",exposure_auto)
+		if(count > 10):
+			depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
+			depth_sensor.set_option(rs.option.exposure, exposure_auto)
+		else:
+			count = count + 1
+		
+		
 
 		aligned_depth_frame = frameset.get_depth_frame()
 		aligned_infrared_frame = frameset.get_infrared_frame(1)
