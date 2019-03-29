@@ -35,7 +35,7 @@ case ${kernel_version} in "4.4"*|"4.8"*|"4.10"*|"4.13"*|"4.15"*|"4.16"*)
         sudo make uninstall && make clean && make -j4 && sudo make install
 
         cd ../..
-        rm -r v${lib_version}.tar.gz librealsense-${lib_version}/
+        sudo rm -r v${lib_version}.tar.gz librealsense-${lib_version}/
 
         echo "Installing librealsense ROS camera wrapper v${ros_lib_version}"
         sleep 1
