@@ -12,6 +12,7 @@ import os
 import random
 import string
 import json
+from copy import deepcopy
 
 
 class RSSaver:
@@ -27,7 +28,12 @@ class RSSaver:
         self.bridge = CvBridge()
         self.image_data = {k: {} for k in topic_prefixes}
         self.image_info = {k: {} for k in topic_prefixes}
-        self.seq = {k: {} for k in topic_prefixes}
+
+        self.sensor_fps = 6.0
+        self.max_frames_difference = 3.0
+        self.max_time_difference = self.max_frames_difference * (1 / self.sensor_fps)
+        self.arrival_time = {k: {} for k in topic_prefixes}
+        self.frame_status = {k: {} for k in topic_prefixes}
 
         self.subs = {k: {} for k in self.prefixes}
         self.__create_subs()
@@ -40,10 +46,10 @@ class RSSaver:
             # Image topics
             self.subs[pre]["colour"] = rospy.Subscriber("/{}_camera/color/image_raw".format(pre), Image, self.save,
                                                         (pre, "colour", "bgr8"))
-            self.subs[pre]["depth_aligned"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/image_raw".format(pre), 
- 							       Image, self.save, (pre, "depth_aligned", "16UC1"))
-	    self.subs[pre]["depth"] = rospy.Subscriber("/{}_camera/depth/image_raw".format(pre), Image, self.save, 
-						       (pre, "depth", "16UC1"))
+            self.subs[pre]["depth_aligned"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/image_raw".format(pre)
+                                                               , Image, self.save, (pre, "depth_aligned", "16UC1"))
+            self.subs[pre]["depth"] = rospy.Subscriber("/{}_camera/depth/image_rect_raw".format(pre), Image, self.save,
+                                                       (pre, "depth", "16UC1"))
             self.subs[pre]["infra1"] = rospy.Subscriber("/{}_camera/infra1/image_rect_raw".format(pre), Image,
                                                         self.save, (pre, "infra1", "8UC1"))
             self.subs[pre]["infra2"] = rospy.Subscriber("/{}_camera/infra2/image_rect_raw".format(pre), Image,
@@ -52,8 +58,9 @@ class RSSaver:
             # Camera Info topics (Intrinsic)
             self.subs[pre]["colour_info"] = rospy.Subscriber("/{}_camera/color/camera_info".format(pre), CameraInfo,
                                                              self.save_info, (pre, "colour", "intrinsic"))
-            self.subs[pre]["depth_aligned_info"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/camera_info".format(pre),
-                                                                    CameraInfo, self.save_info, (pre, "depth_aligned", "intrinsic"))
+            self.subs[pre]["depth_aligned_info"] = rospy.Subscriber(
+                "/{}_camera/aligned_depth_to_color/camera_info".format(pre),
+                CameraInfo, self.save_info, (pre, "depth_aligned", "intrinsic"))
             self.subs[pre]["depth_info"] = rospy.Subscriber("/{}_camera/depth/camera_info".format(pre), CameraInfo,
                                                             self.save_info, (pre, "depth", "intrinsic"))
             self.subs[pre]["infra1_info"] = rospy.Subscriber("/{}_camera/infra1/camera_info".format(pre), CameraInfo,
@@ -84,10 +91,9 @@ class RSSaver:
         raise ValueError("Could not create a save folder for node in '{}'".format(self.save_path))
 
     def save(self, data, args):
+        self.arrival_time[args[0]][args[1]] = rospy.get_rostime()
         self.image_data[args[0]][args[1]] = self.bridge.imgmsg_to_cv2(data, args[2])
-        if args[1] not in self.seq[args[0]]:
-            self.seq[args[0]][args[1]] = 0
-        self.seq[args[0]][args[1]] += 1
+        self.frame_status[args[0]][args[1]] = True
 
     def save_info(self, data, args):
         if args[1] not in self.image_info[args[0]]:
@@ -106,21 +112,52 @@ class RSSaver:
         self.image_info[args[0]][args[1]][args[2]] = data_dict
 
     def dump(self, data=None):
+        # Create state objects to avoid corruption
+        image_data = deepcopy(self.image_data)
+        image_info = deepcopy(self.image_info)
+        frame_status = deepcopy(self.frame_status)
+        arrival_time = deepcopy(self.arrival_time)
+
+        # Set all to false on master frame_status (requires it to collect all new frames from this point)
+        for node_prefix in self.frame_status.keys():
+            self.frame_status[node_prefix] = dict.fromkeys(self.frame_status[node_prefix], False)
+
         if not os.path.isdir(self.save_path):
             os.makedirs(self.save_path)
 
+        # Check see if new full set of images have arrived (no greater than 4 * (1 / fps) difference
         save_id = os.path.join(self.save_path, "{}_{}".format(self.save_id, '{}.{}'))
+        full_image_set = ["colour", "depth", "depth_aligned", "infra1", "infra2"]
+        current_time = rospy.get_rostime().to_sec()
 
-        for node_prefix, sensors in self.image_data.items():
-            if self.image_info[node_prefix]:
+        for node_prefix, sensors in image_data.items():
+            # Check a full set of images exist
+            if not all([s in sensors for s in full_image_set]):
+                print("Not all '{}' camera node frames have arrived, cannot save".format(node_prefix))
+                continue
+
+            # Check they are all new frames
+            if not all(frame_status[node_prefix].values()):
+                print("Saved frame set has not changed since last save, cannot save")
+                continue
+
+            # Check they have arrived within N seconds (N=(4 * (1/ 6)
+            time_stamps = [t.to_sec() for t in arrival_time[node_prefix].values()]
+            difference = max(time_stamps) - min(time_stamps)
+
+            if difference > self.max_time_difference:
+                print("Frames sync disparity too large at {:.1f}, cannot save".format(self.sensor_fps * difference))
+                continue
+
+            if image_info[node_prefix]:
+                image_info[node_prefix]["save_time"] = current_time
                 info_save_path = save_id.format("{}_camera_info".format(node_prefix), "json")
                 print("Saving file '{}'".format(info_save_path))
                 with open(info_save_path, 'w') as fp:
-                    json.dump(self.image_info[node_prefix], fp, sort_keys=True, indent=4)
+                    json.dump(image_info[node_prefix], fp, sort_keys=True, indent=4)
 
             for sensor_type, sensor_data in sensors.items():
-                sequence_data = self.seq[node_prefix][sensor_type]
-                data_save_path = save_id.format("{}_{}_{}".format(node_prefix, sensor_type, sequence_data), "png")
+                data_save_path = save_id.format("{}_{}".format(node_prefix, sensor_type), "png")
                 print("Saving file '{}'".format(data_save_path))
                 cv2.imwrite(data_save_path, sensor_data)
 
