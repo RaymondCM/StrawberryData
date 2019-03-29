@@ -6,13 +6,14 @@ from std_msgs.msg import Empty
 from sensor_msgs.msg import Image, CameraInfo
 from realsense2_camera.msg import Extrinsics
 from cv_bridge import CvBridge, CvBridgeError
+from copy import deepcopy
+import datetime
 import rospkg
 import cv2
 import os
 import random
 import string
 import json
-from copy import deepcopy
 
 
 class RSSaver:
@@ -81,13 +82,14 @@ class RSSaver:
 
     def __create_save_folder(self, n=5):
         attempts = 0
-        while attempts < 10:
+        date = str(datetime.date.today())
+        while attempts < 100:
+            attempts += 1
             pth = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
-            pth = os.path.join(self.save_path, pth)
+            pth = os.path.join(self.save_path, date, pth)
             if not os.path.isdir(pth):
                 self.save_path = pth
                 return
-            attempts += 1
         raise ValueError("Could not create a save folder for node in '{}'".format(self.save_path))
 
     def save(self, data, args):
