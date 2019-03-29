@@ -40,8 +40,10 @@ class RSSaver:
             # Image topics
             self.subs[pre]["colour"] = rospy.Subscriber("/{}_camera/color/image_raw".format(pre), Image, self.save,
                                                         (pre, "colour", "bgr8"))
-            self.subs[pre]["depth"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/image_raw".format(pre), Image,
-                                                       self.save, (pre, "depth", "16UC1"))
+            self.subs[pre]["depth_aligned"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/image_raw".format(pre), 
+ 							       Image, self.save, (pre, "depth_aligned", "16UC1"))
+	    self.subs[pre]["depth"] = rospy.Subscriber("/{}_camera/depth/image_raw".format(pre), Image, self.save, 
+						       (pre, "depth", "16UC1"))
             self.subs[pre]["infra1"] = rospy.Subscriber("/{}_camera/infra1/image_rect_raw".format(pre), Image,
                                                         self.save, (pre, "infra1", "8UC1"))
             self.subs[pre]["infra2"] = rospy.Subscriber("/{}_camera/infra2/image_rect_raw".format(pre), Image,
@@ -50,6 +52,8 @@ class RSSaver:
             # Camera Info topics (Intrinsic)
             self.subs[pre]["colour_info"] = rospy.Subscriber("/{}_camera/color/camera_info".format(pre), CameraInfo,
                                                              self.save_info, (pre, "colour", "intrinsic"))
+            self.subs[pre]["depth_aligned_info"] = rospy.Subscriber("/{}_camera/aligned_depth_to_color/camera_info".format(pre),
+                                                                    CameraInfo, self.save_info, (pre, "depth_aligned", "intrinsic"))
             self.subs[pre]["depth_info"] = rospy.Subscriber("/{}_camera/depth/camera_info".format(pre), CameraInfo,
                                                             self.save_info, (pre, "depth", "intrinsic"))
             self.subs[pre]["infra1_info"] = rospy.Subscriber("/{}_camera/infra1/camera_info".format(pre), CameraInfo,

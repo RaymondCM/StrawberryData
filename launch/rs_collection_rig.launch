@@ -9,7 +9,7 @@
   <arg name="tf_prefix_camera1"         default="$(arg camera1)"/>
   <arg name="tf_prefix_camera2"         default="$(arg camera2)"/>
   <arg name="tf_prefix_camera3"         default="$(arg camera3)"/>
-  <arg name="initial_reset"             default="false"/>
+  <arg name="initial_reset"             default="true"/>
 
   <arg name="fisheye_width"       default="1280"/>
   <arg name="fisheye_height"      default="720"/>
@@ -28,16 +28,16 @@
   <arg name="color_height"        default="1080"/>
   <arg name="enable_color"        default="true"/>
 
-  <arg name="fisheye_fps"         default="30"/>
-  <arg name="depth_fps"           default="30"/>
-  <arg name="infra_fps"           default="30"/>
-  <arg name="color_fps"           default="30"/>
+  <arg name="fisheye_fps"         default="6"/>
+  <arg name="depth_fps"           default="6"/>
+  <arg name="infra_fps"           default="6"/>
+  <arg name="color_fps"           default="6"/>
   <arg name="gyro_fps"            default="400"/>
   <arg name="accel_fps"           default="250"/>
   <arg name="enable_gyro"         default="true"/>
   <arg name="enable_accel"        default="true"/>
 
-  <arg name="enable_pointcloud"   default="true"/>
+  <arg name="enable_pointcloud"   default="false"/>
   <arg name="enable_sync"         default="true"/>
   <arg name="align_depth"         default="true"/>
 
