@@ -7,7 +7,7 @@ import time
 import curses
 import os
 import json
-from scipy.ndimage.filters import gaussian_filter
+import datetime
 
 print("Environment Ready")
 DS5_product_ids = ["0AD1", "0AD2", "0AD3", "0AD4", "0AD5", "0AF6", "0AFE", "0AFF", "0B00", "0B01", "0B03", "0B07","0B3A"]
@@ -26,10 +26,10 @@ def find_device_that_supports_advanced_mode() :
 
 
 def capture(win):
-    dev = find_device_that_supports_advanced_mode()
-    advnc_mode = rs.rs400_advanced_mode(dev)
-    jsonObj = json.load(open("parameters.json"))
-    advnc_mode.load_json(str(jsonObj).replace("'", '\"'))
+    #dev = find_device_that_supports_advanced_mode()
+    #advnc_mode = rs.rs400_advanced_mode(dev)
+    #jsonObj = json.load(open("parameters.json"))
+    #advnc_mode.load_json(str(jsonObj).replace("'", '\"'))
     # print("Advanced mode is", "enabled" if advnc_mode.is_enabled() else "disabled")
     # print("Depth Control: \n", advnc_mode.get_depth_control())
     # print("RSM: \n", advnc_mode.get_rsm())
@@ -54,21 +54,21 @@ def capture(win):
     config_1.enable_stream(rs.stream.infrared,2, 1280,720, rs.format.y8, 30)
     config_1.enable_stream(rs.stream.color,1920,1080,rs.format.rgb8,30)
 
-    pipeline_2 = rs.pipeline()
-    config_2 = rs.config()
-    serial_2 = '810512060234'
-    config_2.enable_device(serial_2)
-    config_2.enable_stream(rs.stream.depth, 1280,720, rs.format.z16, 30)
-    config_2.enable_stream(rs.stream.infrared,1, 1280,720, rs.format.y8, 30)
-    config_2.enable_stream(rs.stream.infrared,2, 1280,720, rs.format.y8, 30)
-    config_2.enable_stream(rs.stream.color,1920,1080,rs.format.rgb8,30)
+    #pipeline_2 = rs.pipeline()
+    #config_2 = rs.config()
+    #serial_2 = '810512060234'
+    #config_2.enable_device(serial_2)
+    #config_2.enable_stream(rs.stream.depth, 1280,720, rs.format.z16, 30)
+    #config_2.enable_stream(rs.stream.infrared,1, 1280,720, rs.format.y8, 30)
+    #config_2.enable_stream(rs.stream.infrared,2, 1280,720, rs.format.y8, 30)
+    #config_2.enable_stream(rs.stream.color,1920,1080,rs.format.rgb8,30)
 
 
     pipeline_1.start(config_1)
-    pipeline_2.start(config_2)
+    #pipeline_2.start(config_2)
 
     profile = pipeline_1.get_active_profile()
-    profile_2 = pipeline_2.get_active_profile()
+    #profile_2 = pipeline_2.get_active_profile()
 
 
     #Get depth sensor
@@ -79,9 +79,9 @@ def capture(win):
     # depth_sensor.set_option(rs.option.exposure, 3250.0)
 
 
-    depth_sensor_2 = profile_2.get_device().first_depth_sensor()
-    depth_scale = depth_sensor_2.get_depth_scale()
-    depth_sensor_2.set_option(rs.option.enable_auto_exposure, 1)
+    #depth_sensor_2 = profile_2.get_device().first_depth_sensor()
+    #depth_scale = depth_sensor_2.get_depth_scale()
+    #depth_sensor_2.set_option(rs.option.enable_auto_exposure, 1)
 
 
     #s.set_region_of_interest(roi)
@@ -134,7 +134,7 @@ def capture(win):
     win.nodelay(True)
     key=""
     win.addstr("Detected key:\n")
-    count = 0
+    start_time = time.time()
     while(1):
     #    print(depth_sensor.get_option(rs.option.exposure))
         frameset1 = pipeline_1.wait_for_frames()
@@ -148,26 +148,32 @@ def capture(win):
             win.erase()
             exposure_auto = depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure)
             win.addstr("exposure value from meta"+str(exposure_auto)+"\n")
-            if(count > 200):
-                depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
-                depth_sensor.set_option(rs.option.exposure, exposure_auto)
-            else:
-                count = count + 1
+            if(time.time()-start_time > 10 ):
+		if(depth_sensor.get_option(rs.option.enable_auto_exposure) == 1):
+		        depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
+		        depth_sensor.set_option(rs.option.exposure, exposure_auto)
+			start_time = time.time()
+		else:
+			depth_sensor.set_option(rs.option.enable_auto_exposure, 1)
+			start_time = time.time()
+			
+	    else:
+		win.addstr("not changing exposure \n")
         else:
             win.addstr("Cannot access metada"+"\n")
 
-        frameset2 = pipeline_2.wait_for_frames()
-        color_frame_2 = frameset2.get_color_frame()
-        color_2 = np.asanyarray(color_frame_2.get_data())
-        colorizer = rs.colorizer()
-        align = rs.align(rs.stream.color)
-        frameset_2 = align.process(frameset2)
-        aligned_depth_frame_2 = frameset_2.get_depth_frame()
-        colorized_depth_2 = np.asanyarray(colorizer.colorize(aligned_depth_frame_2).get_data())
-        images = np.hstack((color_2, colorized_depth_2))
-        images = cv2.resize(images, (1280 *2 , 720), interpolation=cv2.INTER_LINEAR)
-        cv2.imshow("depth and rgb D415",images)
-        cv2.waitKey(10)
+        #frameset2 = pipeline_2.wait_for_frames()
+        #color_frame_2 = frameset2.get_color_frame()
+        #color_2 = np.asanyarray(color_frame_2.get_data())
+        #colorizer = rs.colorizer()
+        #align = rs.align(rs.stream.color)
+        #frameset_2 = align.process(frameset2)
+        #aligned_depth_frame_2 = frameset_2.get_depth_frame()
+        #colorized_depth_2 = np.asanyarray(colorizer.colorize(aligned_depth_frame_2).get_data())
+        #images = np.hstack((color_2, colorized_depth_2))
+        #images = cv2.resize(images, (1280 *2 , 720), interpolation=cv2.INTER_LINEAR)
+        #cv2.imshow("depth and rgb D415",images)
+        #cv2.waitKey(10)
 
 
 
@@ -197,14 +203,14 @@ def capture(win):
         roi_sensor = profile.get_device().query_sensors()[0].as_roi_sensor()
         sensor_roi = roi_sensor.get_region_of_interest()
         sensor_roi.min_x, sensor_roi.max_x = 0,int(infrared.shape[1]-1)
-        sensor_roi.min_y, sensor_roi.max_y = int(infrared.shape[0]/2)-100,int(infrared.shape[0]/2)+100
+        sensor_roi.min_y, sensor_roi.max_y = int(infrared.shape[0]/2),int(infrared.shape[0]-1)
         roi_sensor.set_region_of_interest(sensor_roi)
 
-        roi_sensor_2 = profile_2.get_device().query_sensors()[0].as_roi_sensor()
-        sensor_roi_2 = roi_sensor_2.get_region_of_interest()
-        sensor_roi_2.min_x, sensor_roi_2.max_x = 0,int(infrared.shape[1]-1)
-        sensor_roi_2.min_y, sensor_roi_2.max_y = int(infrared.shape[0]/2)-100,int(infrared.shape[0]/2)+100
-        roi_sensor.set_region_of_interest(sensor_roi_2)
+        #roi_sensor_2 = profile_2.get_device().query_sensors()[0].as_roi_sensor()
+        #sensor_roi_2 = roi_sensor_2.get_region_of_interest()
+        #sensor_roi_2.min_x, sensor_roi_2.max_x = 0,int(infrared.shape[1]-1)
+        #sensor_roi_2.min_y, sensor_roi_2.max_y = int(infrared.shape[0]/2)-100,int(infrared.shape[0]/2)+100
+        #roi_sensor.set_region_of_interest(sensor_roi_2)
 
 
         #print(infrared.shape,color.shape,np.asanyarray(aligned_depth_frame.get_data()).astype(np.float).shape)
@@ -219,19 +225,29 @@ def capture(win):
         cv2.imshow("Depth D345",aligned_depth)
         cv2.waitKey(10)
 
+	infra1 = cv2.resize(infra1, (1280 , 720), interpolation=cv2.INTER_LINEAR)
+
+
+        cv2.imshow("Infrared D345",infra1)
+        cv2.waitKey(10)
+
         try:
             key = win.getkey()
             win.addstr("Detected key:")
             win.addstr(str(key))
-            if str(key)=="s":  # if key 'q' is pressed
+            if str(key)=="s":  
                 print('Saving images')
-                cv2.imwrite('rgb.png',color)
-                cv2.imwrite('colorized_depth.png',colorized_depth)
-                cv2.imwrite('rgb2.png',color_2)
-                cv2.imwrite('colorized_depth2.png',colorized_depth_2)
-                cv2.imwrite('IR1.png',infra1)
-                cv2.imwrite('IR2.png',infra2)
-                pass
+		now = str(datetime.datetime.now())
+		os.mkdir(now)
+                cv2.imwrite(now+'/rgb.png',color)
+                cv2.imwrite(now+'/colorized_depth.png',colorized_depth)
+                #cv2.imwrite('rgb2.png',color_2)
+                #cv2.imwrite('colorized_depth2.png',colorized_depth_2)
+                cv2.imwrite(now+'/IR1.png',infra1)
+                cv2.imwrite(now+'/IR2.png',infra2)
+		cv2.imwrite(now+'/aligned_depth.png',aligned_depth)
+	    #elif str(key)=="e":
+		
         except Exception as e:
            # No input
            pass
