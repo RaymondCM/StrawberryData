@@ -26,6 +26,13 @@ def find_device_that_supports_advanced_mode() :
 
 
 def capture(win):
+    win.nodelay(True)
+    win.clear()
+    while( len(rs.context().devices)<1):
+        win.addstr("no devices connected")
+        win.refresh()
+        time.sleep(50)
+
     #dev = find_device_that_supports_advanced_mode()
     #advnc_mode = rs.rs400_advanced_mode(dev)
     #jsonObj = json.load(open("parameters.json"))
@@ -131,130 +138,171 @@ def capture(win):
     color_intrisics = color_profile.get_intrinsics()
     win.addstr("Color intrinsics "+str(color_intrisics)+"\n")
 
-    win.nodelay(True)
+
     key=""
-    win.addstr("Detected key:\n")
-    start_time = time.time()
-    while(1):
-    #    print(depth_sensor.get_option(rs.option.exposure))
-        frameset1 = pipeline_1.wait_for_frames()
-        color_frame = frameset1.get_color_frame()
-        color = np.asanyarray(color_frame.get_data())
-        colorizer = rs.colorizer()
-        align = rs.align(rs.stream.color)
-        frameset = align.process(frameset1)
-        depth_frame = frameset1.get_depth_frame()
-        if(depth_frame.supports_frame_metadata(rs.frame_metadata_value.actual_exposure)):
-            win.erase()
-            exposure_auto = depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure)
-            win.addstr("exposure value from meta"+str(exposure_auto)+"\n")
-            if(time.time()-start_time > 10 ):
-		if(depth_sensor.get_option(rs.option.enable_auto_exposure) == 1):
-		        depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
-		        depth_sensor.set_option(rs.option.exposure, exposure_auto)
-			start_time = time.time()
-		else:
-			depth_sensor.set_option(rs.option.enable_auto_exposure, 1)
-			start_time = time.time()
-			
-	    else:
-		win.addstr("not changing exposure \n")
-        else:
-            win.addstr("Cannot access metada"+"\n")
 
-        #frameset2 = pipeline_2.wait_for_frames()
-        #color_frame_2 = frameset2.get_color_frame()
-        #color_2 = np.asanyarray(color_frame_2.get_data())
-        #colorizer = rs.colorizer()
-        #align = rs.align(rs.stream.color)
-        #frameset_2 = align.process(frameset2)
-        #aligned_depth_frame_2 = frameset_2.get_depth_frame()
-        #colorized_depth_2 = np.asanyarray(colorizer.colorize(aligned_depth_frame_2).get_data())
-        #images = np.hstack((color_2, colorized_depth_2))
-        #images = cv2.resize(images, (1280 *2 , 720), interpolation=cv2.INTER_LINEAR)
-        #cv2.imshow("depth and rgb D415",images)
-        #cv2.waitKey(10)
+    min_x,max_x = 0,int(1280-1)
+    min_y,max_y = int(720/2),int(720-1)
+    try:
+        while True:
+            frameset1 = pipeline_1.wait_for_frames()
+            color_frame = frameset1.get_color_frame()
+            color = np.asanyarray(color_frame.get_data())
+            colorizer = rs.colorizer()
+            align = rs.align(rs.stream.color)
+            frameset = align.process(frameset1)
+            depth_frame = frameset.get_depth_frame()
+
+            if(depth_frame.supports_frame_metadata(rs.frame_metadata_value.actual_exposure)):
+                if(depth_sensor.get_option(rs.option.enable_auto_exposure) == 1):
+                    win.clear()
+                    exposure_auto = depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure)
+                    win.addstr("exposure value from meta"+str(exposure_auto)+"\n")
+                else:
+                    win.erase()
+                    win.addstr("exposure value"+str(depth_sensor.get_option(rs.option.exposure))+"\n")
+
+            #frameset2 = pipeline_2.wait_for_frames()
+            #color_frame_2 = frameset2.get_color_frame()
+            #color_2 = np.asanyarray(color_frame_2.get_data())
+            #colorizer = rs.colorizer()
+            #align = rs.align(rs.stream.color)
+            #frameset_2 = align.process(frameset2)
+            #aligned_depth_frame_2 = frameset_2.get_depth_frame()
+            #colorized_depth_2 = np.asanyarray(colorizer.colorize(aligned_depth_frame_2).get_data())
+            #images = np.hstack((color_2, colorized_depth_2))
+            #images = cv2.resize(images, (1280 *2 , 720), interpolation=cv2.INTER_LINEAR)
+            #cv2.imshow("depth and rgb D415",images)
+            #cv2.waitKey(10)
 
 
 
-        aligned_depth_frame = frameset.get_depth_frame()
-        aligned_infrared_frame = frameset.get_infrared_frame(1)
-        aligned_infrared_frame_2 = frameset.get_infrared_frame(2)
+            aligned_depth_frame = frameset.get_depth_frame()
+            aligned_infrared_frame = frameset.get_infrared_frame(1)
+            aligned_infrared_frame_2 = frameset.get_infrared_frame(2)
 
-        #spatial = rs.spatial_filter()
-        #spatial.set_option(rs.option.holes_fill, 3)
-        #filtered_depth = spatial.process(aligned_depth_frame)
-        #hole_filling = rs.hole_filling_filter()
-        #filtered_depth = hole_filling.process(aligned_depth_frame)
+            #spatial = rs.spatial_filter()
+            #spatial.set_option(rs.option.holes_fill, 3)
+            #filtered_depth = spatial.process(aligned_depth_frame)
+            #hole_filling = rs.hole_filling_filter()
+            #filtered_depth = hole_filling.process(aligned_depth_frame)
 
-        colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
-        aligned_depth = np.asanyarray(aligned_depth_frame.get_data())
+            colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+            aligned_depth = np.asanyarray(aligned_depth_frame.get_data())
 
-        infrared = np.expand_dims(np.asanyarray(aligned_infrared_frame.get_data()),2)
-        infrared = np.concatenate( (infrared,infrared,infrared),2)
-        infra1 = np.asanyarray(aligned_infrared_frame.get_data())
-        infra2 = np.asanyarray(aligned_infrared_frame_2.get_data())
-        stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
-        disparity = stereo.compute(infra1,infra2)
-        image = np.hstack((infra1,infra2,disparity))
-        #cv2.imshow("disparity",image)
-        #cv2.waitKey(500)
+            infrared = np.expand_dims(np.asanyarray(aligned_infrared_frame.get_data()),2)
+            infrared = np.concatenate( (infrared,infrared,infrared),2)
+            infra1 = np.asanyarray(aligned_infrared_frame.get_data())
+            infra2 = np.asanyarray(aligned_infrared_frame_2.get_data())
+            stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
+            disparity = stereo.compute(infra1,infra2)
+            image = np.hstack((infra1,infra2,disparity))
+            #cv2.imshow("disparity",image)
+            #cv2.waitKey(500)
 
-        roi_sensor = profile.get_device().query_sensors()[0].as_roi_sensor()
-        sensor_roi = roi_sensor.get_region_of_interest()
-        sensor_roi.min_x, sensor_roi.max_x = 0,int(infrared.shape[1]-1)
-        sensor_roi.min_y, sensor_roi.max_y = int(infrared.shape[0]/2),int(infrared.shape[0]-1)
-        roi_sensor.set_region_of_interest(sensor_roi)
+            roi_sensor = profile.get_device().query_sensors()[0].as_roi_sensor()
+            sensor_roi = roi_sensor.get_region_of_interest()
+            sensor_roi.min_x, sensor_roi.max_x = min_x,max_x
+            sensor_roi.min_y, sensor_roi.max_y = min_y,max_y
+            roi_sensor.set_region_of_interest(sensor_roi)
+            cv2.rectangle(infra1, (sensor_roi.min_x, sensor_roi.min_y), (sensor_roi.max_x, sensor_roi.max_y), (255, 255, 0), 5)
 
-        #roi_sensor_2 = profile_2.get_device().query_sensors()[0].as_roi_sensor()
-        #sensor_roi_2 = roi_sensor_2.get_region_of_interest()
-        #sensor_roi_2.min_x, sensor_roi_2.max_x = 0,int(infrared.shape[1]-1)
-        #sensor_roi_2.min_y, sensor_roi_2.max_y = int(infrared.shape[0]/2)-100,int(infrared.shape[0]/2)+100
-        #roi_sensor.set_region_of_interest(sensor_roi_2)
-
-
-        #print(infrared.shape,color.shape,np.asanyarray(aligned_depth_frame.get_data()).astype(np.float).shape)
-        images = np.hstack((color, colorized_depth))
-        images = cv2.resize(images, (1280*2, 720), interpolation=cv2.INTER_LINEAR)
-        cv2.imshow("depth and rgb D345",images)
-        cv2.waitKey(10)
-
-        aligned_depth = cv2.resize(aligned_depth, (1280 * 2 , 720), interpolation=cv2.INTER_LINEAR)
+            #roi_sensor_2 = profile_2.get_device().query_sensors()[0].as_roi_sensor()
+            #sensor_roi_2 = roi_sensor_2.get_region_of_interest()
+            #sensor_roi_2.min_x, sensor_roi_2.max_x = 0,int(infrared.shape[1]-1)
+            #sensor_roi_2.min_y, sensor_roi_2.max_y = int(infrared.shape[0]/2)-100,int(infrared.shape[0]/2)+100
+            #roi_sensor.set_region_of_interest(sensor_roi_2)
 
 
-        cv2.imshow("Depth D345",aligned_depth)
-        cv2.waitKey(10)
+            #print(infrared.shape,color.shape,np.asanyarray(aligned_depth_frame.get_data()).astype(np.float).shape)
+            images = np.hstack((color, colorized_depth))
+            images = cv2.resize(images, (1280, 720), interpolation=cv2.INTER_LINEAR)
+            cv2.imshow("depth and rgb D345",images)
+            cv2.imshow("Infrared D345",infra1)
+            cv2.waitKey(1)
 
-	infra1 = cv2.resize(infra1, (1280 , 720), interpolation=cv2.INTER_LINEAR)
+            try:
+                key = win.getkey()
+                win.addstr("Detected key:")
+                win.addstr(str(key))
+                if str(key)=="s":
+                    print('Saving images')
+                    now = str(datetime.datetime.now())
+                    os.mkdir(now)
+                    cv2.imwrite(now+'/rgb.png',color)
+                    cv2.imwrite(now+'/colorized_depth.png',colorized_depth)
+                    #cv2.imwrite('rgb2.png',color_2)
+                    #cv2.imwrite('colorized_depth2.png',colorized_depth_2)
+                    cv2.imwrite(now+'/IR1.png',infra1)
+                    cv2.imwrite(now+'/IR2.png',infra2)
+                    cv2.imwrite(now+'/aligned_depth.png',aligned_depth)
+                elif str(key)=="e":
+                    if(depth_frame.supports_frame_metadata(rs.frame_metadata_value.actual_exposure)):
+                        win.clear()
+                        exposure_auto = depth_frame.get_frame_metadata(rs.frame_metadata_value.actual_exposure)
+                        win.addstr("exposure value from meta"+str(exposure_auto)+"\n")
+                        if(depth_sensor.get_option(rs.option.enable_auto_exposure) == 1):
+                            depth_sensor.set_option(rs.option.enable_auto_exposure, 0)
+                            depth_sensor.set_option(rs.option.exposure, exposure_auto)
+                        else:
+                            depth_sensor.set_option(rs.option.enable_auto_exposure, 1)
+                    else:
+                        win.addstr("Cannot access metada"+"\n")
+                ####  Move ROI
+                #### r = up
+                #### f = down
+                #### d = left
+                #### g = right
+                #### k = reduce height
+                #### l = reduce width
+                #### o = augment height
+                #### p = augment width
+                elif str(key)=="r":
+                    if(min_y-10 > 0 ):
+                        min_y = min_y - 10
+                        max_y = max_y - 10
+                elif str(key)=="f":
+                    if(max_y+10 < int(infrared.shape[0]-1) ):
+                        min_y = min_y + 10
+                        max_y = max_y + 10
+                elif str(key)=="d":
+                    if(min_x-10 > 0 ):
+                        min_x = min_x - 10
+                        max_x = max_x - 10
+                elif str(key)=="g":
+                    if(max_x + 10 < int(infrared.shape[1]-1) ):
+                        min_x = min_x + 10
+                        max_x = max_x + 10
+                elif str(key)=="l":
+                    if(max_x-min_x >10):
+                        min_x = min_x + 10
+                        max_x = max_x -10
+                elif str(key)=="k":
+                    if(max_y-min_y >10):
+                        min_y = min_y + 10
+                        max_y = max_y -10
+
+                elif str(key)=="p":
+                    if(max_x +10 < int(infrared.shape[1]-1)):
+                        max_x = max_x + 10
+                    if(min_x-10 > 0 ):
+                        min_x = min_x - 10
+                elif str(key)=="o":
+                    if(max_y + 10 < int(infrared.shape[0]-1)):
+                        max_y = max_y + 10
+                    if(min_y - 10 > 0 ):
+                        min_y = min_y - 10
+                elif str(key)=="q":
+                    break
 
 
-        cv2.imshow("Infrared D345",infra1)
-        cv2.waitKey(10)
-
-        try:
-            key = win.getkey()
-            win.addstr("Detected key:")
-            win.addstr(str(key))
-            if str(key)=="s":  
-                print('Saving images')
-		now = str(datetime.datetime.now())
-		os.mkdir(now)
-                cv2.imwrite(now+'/rgb.png',color)
-                cv2.imwrite(now+'/colorized_depth.png',colorized_depth)
-                #cv2.imwrite('rgb2.png',color_2)
-                #cv2.imwrite('colorized_depth2.png',colorized_depth_2)
-                cv2.imwrite(now+'/IR1.png',infra1)
-                cv2.imwrite(now+'/IR2.png',infra2)
-		cv2.imwrite(now+'/aligned_depth.png',aligned_depth)
-	    #elif str(key)=="e":
-		
-        except Exception as e:
-           # No input
-           pass
+            except Exception as e:
+               # No input
+               pass
+    finally:
+        pipeline_1.stop()
 
 
-    # Cleanup:
-    #pipeline_1.stop()
 
     color_focal_length_1280 = (color_intrisics.fx,color_intrisics.fy)
     color_principal_point_1280 = (color_intrisics.ppx,color_intrisics.ppy)
@@ -262,29 +310,8 @@ def capture(win):
     depth_focal_length_848 = (427.8556,427.8556)
     depth_principal_point_848 = (426.9114,250.9030)
 
-    extrinsic_234 = np.asarray([[0.999992,-0.002436,0.012152,0.019]
-                        ,[0.002471,0.9999,-0.00286,-9.7e-3]
-                        ,[-0.012145,0.002987,0.99992,0.0002839]
-                        ,[0,0,0,1]])
-    extrinsic = extrinsic_234
-    inverse_extrinsic = np.linalg.inv(extrinsic)
-
-    depth =    np.asanyarray(aligned_depth_frame.get_data()).astype(np.float)
+    depth =  aligned_depth#  np.asanyarray(aligned_depth.get_data()).astype(np.float)
     color = color.astype(np.float)/255
-
-
-
-    #### apply post processing
-    # spatial = rs.spatial_filter()
-    # spatial.set_option(rs.option.holes_fill, 3)
-    # filtered_depth = spatial.process(aligned_depth_frame)
-    # hole_filling = rs.hole_filling_filter()
-    # filtered_depth = hole_filling.process(filtered_depth)
-    # colorized_depth = np.asanyarray(colorizer.colorize(filtered_depth).get_data())
-    # plt.imshow(colorized_depth)
-    #
-    # plt.show()
-
 
     points = []
     colors = []
@@ -296,7 +323,6 @@ def capture(win):
                 x = (depth_x  - color_principal_point_1280[0] ) * z  /  color_focal_length_1280[0]
                 y = (depth_y  - color_principal_point_1280[1] ) * z  /  color_focal_length_1280[1]
                 point = np.array([x,y,z,1.0])
-                point = np.dot(inverse_extrinsic,point)
                 point = point[:3]/ point[3]
                 points.append(point * np.array([1,-1,-1]))
                 colors.append(color[depth_y][depth_x])
@@ -314,10 +340,3 @@ def capture(win):
     opend.draw_geometries([pcd])
 
 curses.wrapper(capture)
-
-
-
-if(blue_pill is chosen):
-    Enter_the_matrix()
-elif(red_pill is chosen):
-    Forget_everything()
