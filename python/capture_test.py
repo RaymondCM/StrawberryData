@@ -194,9 +194,9 @@ def capture(win):
             infrared = np.concatenate( (infrared,infrared,infrared),2)
             infra1 = np.asanyarray(aligned_infrared_frame.get_data())
             infra2 = np.asanyarray(aligned_infrared_frame_2.get_data())
-            stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
-            disparity = stereo.compute(infra1,infra2)
-            image = np.hstack((infra1,infra2,disparity))
+            #stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
+            #disparity = stereo.compute(infra1,infra2)
+            #image = np.hstack((infra1,infra2,disparity))
             #cv2.imshow("disparity",image)
             #cv2.waitKey(500)
 
@@ -219,7 +219,7 @@ def capture(win):
             images = cv2.resize(images, (1280, 720), interpolation=cv2.INTER_LINEAR)
             cv2.imshow("depth and rgb D345",images)
             cv2.imshow("Infrared D345",infra1)
-            cv2.waitKey(1)
+            cv2.waitKey(10)
 
             try:
                 key = win.getkey()
