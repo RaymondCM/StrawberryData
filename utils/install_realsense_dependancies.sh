@@ -40,7 +40,7 @@ case ${kernel_version} in "4.4"*|"4.8"*|"4.10"*|"4.13"*|"4.15"*|"4.16"*)
         echo "Installing librealsense ROS camera wrapper v${ros_lib_version}"
         sleep 1
 
-        cd ../
+        cd ../../
         wget https://github.com/intel-ros/realsense/archive/${ros_lib_version}.tar.gz
         tar xvzf ${ros_lib_version}.tar.gz
         rm ${ros_lib_version}.tar.gz

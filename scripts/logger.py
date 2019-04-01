@@ -40,6 +40,7 @@ class RSSaver:
         self.__create_subs()
 
         self.log_data_sub = rospy.Subscriber("/rasberry_data_capture/dump", Empty, self.dump)
+        self.loc_data_sub = rospy.Subscriber("/current_node", Empty, self.dump)
 
     def __create_subs(self):
         self.subs = {k: {} for k in self.prefixes}

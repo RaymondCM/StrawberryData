@@ -6,5 +6,5 @@ This is the WIP ROS package for collecting data. Data collection suite for RASBe
 
 ```bash
 cd ~/catkin_ws/src
-bash <(curl -s https://raw.githubusercontent.com/RaymondKirk/StrawberryData/ros/get_capture_package.sh)
+bash <(curl -s https://raw.githubusercontent.com/RaymondKirk/StrawberryData/ros/utils/get_capture_package.sh)
 ```
