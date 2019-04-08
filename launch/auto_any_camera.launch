@@ -1,0 +1,12 @@
+<launch>
+    <group>
+        <include file="$(find rasberry_data_capture)/launch/any_camera.launch"/>
+
+        <!-- Set to match the cameras that are launched in the include file (camera launch script) -->
+        <arg name="topic_prefixes" default="rsense"/> <!-- Separate topic_prefixes with commas -->
+
+        <node pkg="rasberry_data_capture" name="rasberry_data_capture" type="logger.py" output="screen">
+            <param name="topic_prefixes" value="$(arg topic_prefixes)"/>
+        </node>
+    </group>
+</launch>
