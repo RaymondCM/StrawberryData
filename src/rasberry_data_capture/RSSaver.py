@@ -2,7 +2,7 @@
 from __future__ import print_function, division
 
 import rospy
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty, String
 from sensor_msgs.msg import Image, CameraInfo
 from realsense2_camera.msg import Extrinsics
 from cv_bridge import CvBridge, CvBridgeError
@@ -37,7 +37,7 @@ class RSSaver:
         self.__create_subs()
 
         self.log_data_sub = rospy.Subscriber("/rasberry_data_capture/dump", Empty, self.dump)
-        self.loc_data_sub = rospy.Subscriber("/current_node", Empty, self.dump)
+        self.loc_data_sub = rospy.Subscriber("/current_edge", String, self.dump)
 
     def test(self, data):
         print(data)
@@ -115,6 +115,13 @@ class RSSaver:
         self.image_info[args[0]][args[1]][args[2]] = data_dict
 
     def dump(self, data=None):
+        # Check if source was conditional (if empty just log data)
+        if isinstance(data, String):
+            data = str(data.data)
+            # If string is passed then check if message is 'none' which indicated robot arrived at destination node
+            if data != "none":
+                return
+
         # Create state objects to avoid corruption
         image_data = deepcopy(self.image_data)
         image_info = deepcopy(self.image_info)
