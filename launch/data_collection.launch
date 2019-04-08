@@ -1,6 +1,0 @@
-<launch>
-    <group>
-        <!--<include file="$(find rasberry_data_capture)/launch/rs_collection_rig.launch"/>-->
-        <node pkg="rasberry_data_capture" name="rasberry_data_capture" type="logger.py" output="screen"/>
-    </group>
-</launch>

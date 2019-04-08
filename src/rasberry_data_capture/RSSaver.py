@@ -15,11 +15,8 @@ import random
 import string
 import json
 
-
 class RSSaver:
-    def __init__(self, topic_prefixes=None):
-        if topic_prefixes is None:
-            topic_prefixes = ["top", "mid", "bot"]
+    def __init__(self, topic_prefixes):
         self.prefixes = topic_prefixes
 
         self.save_path = os.path.abspath(os.path.join(rospkg.RosPack().get_path('rasberry_data_capture'), "saved_data"))
@@ -41,6 +38,9 @@ class RSSaver:
 
         self.log_data_sub = rospy.Subscriber("/rasberry_data_capture/dump", Empty, self.dump)
         self.loc_data_sub = rospy.Subscriber("/current_node", Empty, self.dump)
+
+    def test(self, data):
+        print(data)
 
     def __create_subs(self):
         self.subs = {k: {} for k in self.prefixes}
@@ -165,27 +165,3 @@ class RSSaver:
                 cv2.imwrite(data_save_path, sensor_data)
 
         self.save_id += 1
-
-
-def __manual_save():
-    rospy.init_node('rasberry_data_saver', anonymous=True)
-    saver = RSSaver()
-
-    keep_running = True
-    try:
-        while keep_running and not rospy.core.is_shutdown():
-            key = raw_input("Press (s) to save the RealSense camera data: ")
-            if len(key) == 0:
-                continue
-
-            key = key[0].lower()
-            if key == "s":
-                saver.dump()
-            elif key == "q":
-                keep_running = False
-    except KeyboardInterrupt:
-        print("Exiting Node")
-
-
-if __name__ == '__main__':
-    __manual_save()
