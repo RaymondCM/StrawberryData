@@ -1,7 +1,6 @@
 <launch>
     <group>
-<!--        <include file="$(find rasberry_data_capture)/launch/rs_collection_rig.launch"/>-->
+        <!--<include file="$(find rasberry_data_capture)/launch/rs_collection_rig.launch"/>-->
         <node pkg="rasberry_data_capture" name="rasberry_data_capture" type="logger.py" output="screen"/>
-        <remap from="/current_node" to="/rasberry_data_capture/dump"/>
     </group>
 </launch>
