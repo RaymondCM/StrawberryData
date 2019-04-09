@@ -6,7 +6,6 @@
 
   <maintainer email="rkirk@lincoln.ac.uk">raymond</maintainer>
 
-
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
