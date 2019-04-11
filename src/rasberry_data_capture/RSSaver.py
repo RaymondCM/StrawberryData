@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 
+import numpy as np
 import rospy
 from std_msgs.msg import Empty, String
 from sensor_msgs.msg import Image, CameraInfo
@@ -14,6 +15,34 @@ import os
 import random
 import string
 import json
+
+
+class Queue:
+    def __init__(self, list_arr):
+        self.history = []
+        for value in list_arr:
+            self.history.append(value)
+
+    def enqueue(self, value):
+        self.history.append(value)
+
+    def dequeue(self):
+        if len(self.history) > 0:
+            return self.history.pop(0)
+        else:
+            return False
+
+    def add(self, value):
+        x = self.dequeue()
+        self.enqueue(value)
+        return x
+
+    def output(self):
+        st = ""
+        for value in self.history:
+            st = st + " > " + str(value)
+        print(st)
+
 
 class RSSaver:
     def __init__(self, topic_prefixes):
@@ -39,8 +68,9 @@ class RSSaver:
         self.log_data_sub = rospy.Subscriber("/rasberry_data_capture/dump", Empty, self.dump)
         self.loc_data_sub = rospy.Subscriber("/current_edge", String, self.dump)
 
-    def test(self, data):
-        print(data)
+        self.data_summary_pub = rospy.Publisher("/rasberry_data_capture/summary", Image)
+        self.depth_queue = Queue([None] * 4)
+        self.colour_queue = Queue([None] * 4)
 
     def __create_subs(self):
         self.subs = {k: {} for k in self.prefixes}
@@ -114,6 +144,34 @@ class RSSaver:
 
         self.image_info[args[0]][args[1]][args[2]] = data_dict
 
+    def publish_summary(self):
+        if all(x is None for x in self.colour_queue.history) or all(x is None for x in self.depth_queue.history):
+            return
+
+        height, width = self.colour_queue.history[-1].shape[:2]
+        canvas = np.zeros((height * 2, width * 4, 3), dtype=np.uint8)
+        positions_rgb = [(0, 0), (0, width * 2), (height, 0), (height, width * 2)]
+        positions_depth = [(0, width), (0, width * 3), (height, width), (height, width * 3)]
+
+        for i, rgb in enumerate(self.colour_queue.history):
+            if rgb is not None:
+                x, y = positions_rgb[i]
+                canvas[x:x + height, y:y + width] = rgb
+
+        for i, depth in enumerate(self.depth_queue.history):
+            if depth is not None:
+                x, y = positions_depth[i]
+                depth = (((depth - np.min(depth)) / np.ptp(depth)) * 255).astype(np.uint8)
+                depth = cv2.applyColorMap(depth, cv2.COLORMAP_JET)
+                canvas[x:x+height, y:y+width] = depth
+
+        self.data_summary_pub.publish(self.bridge.cv2_to_imgmsg(canvas, "bgr8"))
+        # if all(x is not None for x in self.colour_queue.history):
+        #     cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+        #     cv2.imshow("test", canvas)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
+
     def dump(self, data=None):
         # Check if source was conditional (if empty just log data)
         if isinstance(data, String):
@@ -165,6 +223,10 @@ class RSSaver:
                 print("Saving file '{}'".format(info_save_path))
                 with open(info_save_path, 'w') as fp:
                     json.dump(image_info[node_prefix], fp, sort_keys=True, indent=4)
+
+            self.colour_queue.add(sensors["colour"])
+            self.depth_queue.add(sensors["depth_aligned"])
+            self.publish_summary()
 
             for sensor_type, sensor_data in sensors.items():
                 data_save_path = save_id.format("{}_{}".format(node_prefix, sensor_type), "png")
