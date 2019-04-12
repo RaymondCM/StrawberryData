@@ -69,8 +69,9 @@ class RSSaver:
         self.loc_data_sub = rospy.Subscriber("/current_edge", String, self.dump)
 
         self.data_summary_pub = rospy.Publisher("/rasberry_data_capture/summary", Image)
-        self.depth_queue = Queue([None] * 4)
-        self.colour_queue = Queue([None] * 4)
+
+        self.depth_queue = Queue([None] * 2)
+        self.colour_queue = Queue([None] * 2)
 
     def __create_subs(self):
         self.subs = {k: {} for k in self.prefixes}
@@ -150,8 +151,8 @@ class RSSaver:
 
         height, width = self.colour_queue.history[-1].shape[:2]
         canvas = np.zeros((height * 2, width * 4, 3), dtype=np.uint8)
-        positions_rgb = [(0, 0), (0, width * 2), (height, 0), (height, width * 2)]
-        positions_depth = [(0, width), (0, width * 3), (height, width), (height, width * 3)]
+        positions_rgb = [(0, 0), (0, width)]
+        positions_depth = [(height, 0), (height, width)]
 
         for i, rgb in enumerate(self.colour_queue.history):
             if rgb is not None:
@@ -165,6 +166,7 @@ class RSSaver:
                 depth = cv2.applyColorMap(depth, cv2.COLORMAP_JET)
                 canvas[x:x+height, y:y+width] = depth
 
+        canvas = cv2.resize(canvas, None, fx=0.5, fy=0.5)
         self.data_summary_pub.publish(self.bridge.cv2_to_imgmsg(canvas, "bgr8"))
         # if all(x is not None for x in self.colour_queue.history):
         #     cv2.namedWindow("test", cv2.WINDOW_NORMAL)
