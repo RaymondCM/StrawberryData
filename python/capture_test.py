@@ -136,7 +136,8 @@ def capture(win):
     #Display intrisics for Color
     color_profile = rs.video_stream_profile(profile.get_stream(rs.stream.color))
     color_intrisics = color_profile.get_intrinsics()
-    win.addstr("Color intrinsics "+str(color_intrisics)+"\n")
+    print("Color intrinsics "+str(color_intrisics)+"\n")
+    
 
 
     key=""
