@@ -4,19 +4,19 @@ version: '3.1'
 services:
 
   # if we'd want to run the actual capture in docker as well...
-  #rasberry_data_capture:
-  #  build: .
-  #  devices:
-    # allow container to access USB0
-  #  - "/dev/ttyUSB0:/dev/ttyUSB0"
+  rasberry_data_capture:
+    image: lcasuol/rasberry_data_capture:latest
+    build: .
+    privileged: true
+    network_mode: "host"
 
   mongo:
     image: mongo:4.2
     restart: always
-    ports:
-      - 27018:27017
+    network_mode: "host"
     volumes:
       - /srv/mongo/db:/data/db
+    command: --port 27018
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: b7d7e9d16bef48e4cb78353214792814
@@ -24,10 +24,11 @@ services:
   mongo-express:
     image: mongo-express
     restart: always
-    ports:
-      - 8081:8081
+    network_mode: "host"
     environment:
+      ME_CONFIG_MONGODB_PORT: 27018
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_SERVER: localhost
       ME_CONFIG_MONGODB_ADMINPASSWORD: b7d7e9d16bef48e4cb78353214792814
       ME_CONFIG_BASICAUTH_USERNAME: rasberry
       ME_CONFIG_BASICAUTH_PASSWORD: 078c9cfbac66b9675de8935f7030ce06
